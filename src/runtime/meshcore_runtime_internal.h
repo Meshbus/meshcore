@@ -108,6 +108,7 @@ struct meshcore_runtime_request_node_trace_path {
 struct meshcore_runtime_request_node_telemetry {
   uint8_t public_key[MESHCORE_PUBLIC_KEY_SIZE];
   uint8_t permission_mask;
+  uint32_t tag;
 };
 
 struct meshcore_runtime_request_node_binary {

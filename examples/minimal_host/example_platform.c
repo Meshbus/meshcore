@@ -559,11 +559,13 @@ int meshcore_platform_event_trace_path(const uint8_t *key_prefix,
 
 int meshcore_platform_event_telemetry(const uint8_t *key_prefix,
                                       uint32_t timestamp,
+                                      uint32_t tag,
                                       const uint8_t *payload,
                                       size_t payload_len)
 {
   UNUSED(key_prefix);
   UNUSED(timestamp);
+  UNUSED(tag);
   UNUSED(payload);
   UNUSED(payload_len);
   return 0;

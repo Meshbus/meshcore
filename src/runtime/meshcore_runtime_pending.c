@@ -414,8 +414,8 @@ bool meshcore_runtime_pending_telemetry_handle(const uint8_t *key_prefix,
     return false;
   }
 
-  (void)meshcore_platform_bridge_telemetry_handler(key_prefix, timestamp, &payload[sizeof(tag)],
-                                       payload_len - sizeof(tag));
+  (void)meshcore_platform_bridge_telemetry_handler(
+      key_prefix, timestamp, tag, &payload[sizeof(tag)], payload_len - sizeof(tag));
   meshcore_runtime_pending_telemetry_clear();
   return true;
 }

@@ -553,9 +553,11 @@ static void meshcore_runtime_request_execute_node_telemetry(
     const struct meshcore_runtime_request_node_telemetry *request) {
   struct meshcore_identity recipient;
   struct meshcore_packet *packet;
+  meshcore_common_peer_path_t peer_path;
   uint8_t secret[MESHCORE_PUBLIC_KEY_SIZE];
   uint8_t req_data[9];
   uint8_t data[13];
+  uint8_t path_len = 0U;
   uint32_t tag;
 
   if (request == NULL) {
@@ -567,8 +569,11 @@ static void meshcore_runtime_request_execute_node_telemetry(
     return;
   }
 
-  tag = meshcore_clock_rtc_get_current_time_unique(
-      &meshcore_runtime_context_get()->rtc_clock_state);
+  tag = request->tag;
+  if (tag == 0U) {
+    tag = meshcore_clock_rtc_get_current_time_unique(
+        &meshcore_runtime_context_get()->rtc_clock_state);
+  }
   meshcore_runtime_request_prepare_req_data(req_data, request->permission_mask);
   memcpy(data, &tag, sizeof(tag));
   memcpy(&data[4], req_data, sizeof(req_data));
@@ -588,8 +593,14 @@ static void meshcore_runtime_request_execute_node_telemetry(
 
   meshcore_runtime_pending_telemetry_register(tag, request->public_key,
                                               request->permission_mask);
-  meshcore_mesh_send_flood(&meshcore_runtime_context_get()->mesh, packet, 0U,
-                           meshcore_runtime_local_path_hash_size_get());
+  if (meshcore_runtime_peer_path_get(request->public_key, &peer_path,
+                                     &path_len)) {
+    meshcore_mesh_send_direct(&meshcore_runtime_context_get()->mesh, packet,
+                              peer_path.out_path, path_len, 0U);
+  } else {
+    meshcore_mesh_send_flood(&meshcore_runtime_context_get()->mesh, packet, 0U,
+                             meshcore_runtime_local_path_hash_size_get());
+  }
 }
 
 static void meshcore_runtime_request_execute_node_binary(
@@ -972,9 +983,11 @@ int meshcore_node_trace_path_request(const uint8_t *public_key) {
 }
 
 int meshcore_node_telemetry_request(const uint8_t *public_key,
-                                    uint8_t permission_mask) {
+                                    uint8_t permission_mask,
+                                    uint32_t *request_tag) {
   int rc = meshcore_runtime_require_initialized();
   union meshcore_runtime_request_data data;
+  uint32_t tag = 0U;
 
   if (rc != 0) {
     return rc;
@@ -986,12 +999,25 @@ int meshcore_node_telemetry_request(const uint8_t *public_key,
     return rc;
   }
 
+  if (request_tag != NULL) {
+    tag = *request_tag;
+  }
+  if (tag == 0U) {
+    tag = meshcore_clock_rtc_get_current_time_unique(
+        &meshcore_runtime_context_get()->rtc_clock_state);
+  }
+
   memset(&data, 0, sizeof(data));
   memcpy(data.node_telemetry.public_key, public_key,
          sizeof(data.node_telemetry.public_key));
   data.node_telemetry.permission_mask = permission_mask;
-  return meshcore_runtime_request_add(MESHCORE_RUNTIME_REQUEST_NODE_TELEMETRY,
-                                      &data);
+  data.node_telemetry.tag = tag;
+  rc = meshcore_runtime_request_add(MESHCORE_RUNTIME_REQUEST_NODE_TELEMETRY,
+                                    &data);
+  if (rc == 0 && request_tag != NULL) {
+    *request_tag = tag;
+  }
+  return rc;
 }
 
 int meshcore_node_binary_request(const uint8_t *public_key,

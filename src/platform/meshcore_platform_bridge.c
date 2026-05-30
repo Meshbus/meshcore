@@ -297,9 +297,10 @@ int meshcore_platform_bridge_trace_path_handler(
 
 int meshcore_platform_bridge_telemetry_handler(const uint8_t *key_prefix,
                                             uint32_t timestamp,
+                                            uint32_t tag,
                                             const uint8_t *payload,
                                             size_t payload_len) {
-  return meshcore_platform_event_telemetry(key_prefix, timestamp, payload,
+  return meshcore_platform_event_telemetry(key_prefix, timestamp, tag, payload,
                                            payload_len);
 }
 

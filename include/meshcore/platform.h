@@ -749,12 +749,13 @@ int meshcore_platform_event_trace_path(const uint8_t *key_prefix,
  *
  * @param key_prefix Peer public-key prefix.
  * @param timestamp Event timestamp.
+ * @param tag Correlation tag.
  * @param payload Encoded telemetry payload bytes.
  * @param payload_len Number of bytes in @p payload.
  * @return 0 on success, or a negative errno-style value.
  */
 int meshcore_platform_event_telemetry(const uint8_t *key_prefix,
-                                      uint32_t timestamp,
+                                      uint32_t timestamp, uint32_t tag,
                                       const uint8_t *payload,
                                       size_t payload_len);
 

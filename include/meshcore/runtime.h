@@ -182,10 +182,15 @@ int meshcore_node_trace_path_request(const uint8_t *public_key);
  * @param public_key Full peer public key.
  * @param permission_mask MeshCore telemetry permission bits. Wire encoding
  * uses the upstream inverse-mask request byte, @c ~permission_mask.
+ * @param request_tag Optional request correlation tag storage. Pass NULL or
+ * a pointer to zero to let the runtime generate a tag. A non-zero pointed
+ * value is used as the request tag. On success, the actual request tag is
+ * written back to this pointer when provided.
  * @return 0 on success, or a negative errno-style value.
  */
 int meshcore_node_telemetry_request(const uint8_t *public_key,
-                                    uint8_t permission_mask);
+                                    uint8_t permission_mask,
+                                    uint32_t *request_tag);
 
 /**
  * @brief Request remote binary data.
