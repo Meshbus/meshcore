@@ -1,0 +1,59 @@
+# SPDX-License-Identifier: Apache-2.0
+
+# CMake build and install outputs
+/build/
+/build*/
+/cmake-build-*/
+/install/
+/_install/
+/_deps/
+CMakeCache.txt
+CMakeFiles/
+CTestTestfile.cmake
+DartConfiguration.tcl
+Testing/
+cmake_install.cmake
+compile_commands.json
+install_manifest.txt
+
+# Native compiler and linker artifacts
+*.a
+*.d
+*.dll
+*.dylib
+*.exe
+*.gcda
+*.gcno
+*.gcov
+*.o
+*.obj
+*.out
+*.so
+
+# Test, coverage, and report outputs
+/coverage/
+/coverage-report/
+/Testing/
+*.log
+
+# Local upstream/reference trees
+/.ref/
+/.reference/
+/.references/
+
+# Python tooling caches
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Editor and OS state
+.DS_Store
+.clangd
+.idea/
+.vscode/
+*.code-workspace
+*.swp
+*.swo
+*~

@@ -1,0 +1,12 @@
+# MeshCore upstream reference lock.
+#
+# This file is intentionally simple so lightweight tools can parse it without
+# extra dependencies. Paths are relative to the MeshCore repository root.
+
+reference_path=.reference/meshcore
+commit=c940ea5f305df87c4ea215d74e522b64c22c66e9
+description=Merge pull request #2567 from recrof/patch-4
+
+# Evidence roots used by the stabilized C-library architecture.
+protocol_core_root=.reference/meshcore/src
+runtime_examples_root=.reference/meshcore/examples
