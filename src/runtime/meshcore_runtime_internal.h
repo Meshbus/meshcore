@@ -99,10 +99,12 @@ struct meshcore_runtime_request_message_send_to_channel {
 struct meshcore_runtime_request_node_discover_path {
   uint8_t public_key[MESHCORE_PUBLIC_KEY_SIZE];
   bool record_snr;
+  uint32_t tag;
 };
 
 struct meshcore_runtime_request_node_trace_path {
   uint8_t public_key[MESHCORE_PUBLIC_KEY_SIZE];
+  uint32_t tag;
 };
 
 struct meshcore_runtime_request_node_telemetry {

@@ -563,6 +563,7 @@ int meshcore_platform_event_peer_path(
 
 int meshcore_platform_event_trace_path(const uint8_t *key_prefix,
                                        uint8_t state,
+                                       uint32_t tag,
                                        const int8_t *out_path_snr,
                                        uint8_t out_count,
                                        const int8_t *return_path_snr,
@@ -573,6 +574,7 @@ int meshcore_platform_event_trace_path(const uint8_t *key_prefix,
 {
   (void)key_prefix;
   (void)state;
+  (void)tag;
   (void)out_path_snr;
   (void)out_count;
   (void)return_path_snr;

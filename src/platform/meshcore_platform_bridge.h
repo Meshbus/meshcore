@@ -77,7 +77,7 @@ int meshcore_platform_bridge_peer_path_publish(
 int meshcore_platform_bridge_peer_path_handler(
     const meshcore_common_peer_path_event_t *peer_path);
 int meshcore_platform_bridge_trace_path_handler(
-    const uint8_t *key_prefix, uint8_t state, const int8_t *out_path_snr,
+    const uint8_t *key_prefix, uint8_t state, uint32_t tag, const int8_t *out_path_snr,
     uint8_t out_count, const int8_t *return_path_snr, uint8_t return_count,
     bool has_response_snr, int8_t response_snr, uint32_t timestamp);
 int meshcore_platform_bridge_telemetry_handler(const uint8_t *key_prefix,

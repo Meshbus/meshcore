@@ -285,6 +285,7 @@ bool meshcore_runtime_pending_discovery_handle(
   uint8_t path_hash_size;
   uint8_t out_snr_count = 0U;
   uint8_t return_snr_count = 0U;
+  uint32_t tag = 0U;
 
   if (!meshcore_runtime_context_get()->pending_discovery.valid || key_prefix == NULL ||
       (extra_type != PATH_EXTRA_TYPE_SNR && extra_type != PAYLOAD_TYPE_RESPONSE) ||
@@ -297,7 +298,21 @@ bool meshcore_runtime_pending_discovery_handle(
   if (out_path_len > 0U && path == NULL) {
     return false;
   }
+  if (extra_type == PATH_EXTRA_TYPE_SNR &&
+      !meshcore_runtime_context_get()->pending_discovery.record_snr) {
+    return false;
+  }
+  if (extra_type == PAYLOAD_TYPE_RESPONSE) {
+    if (extra == NULL || extra_len < sizeof(tag)) {
+      return false;
+    }
+    memcpy(&tag, extra, sizeof(tag));
+    if (meshcore_runtime_context_get()->pending_discovery.tag != tag) {
+      return false;
+    }
+  }
 
+  event.tag = meshcore_runtime_context_get()->pending_discovery.tag;
   if (out_path_len > 0U) {
     memcpy(event.out_path, path, out_path_len);
   }
@@ -389,7 +404,7 @@ bool meshcore_runtime_pending_trace_handle(
                                          response_snr);
 
   (void)meshcore_platform_bridge_trace_path_handler(
-      meshcore_runtime_context_get()->pending_trace.key_prefix, 1U, out_path_snr, out_count,
+      meshcore_runtime_context_get()->pending_trace.key_prefix, 1U, tag, out_path_snr, out_count,
       return_path_snr, return_count, true, response_snr,
       meshcore_runtime_timestamp_now_seconds());
   meshcore_runtime_pending_trace_clear();
@@ -619,8 +634,8 @@ bool meshcore_test_runtime_simulate_peer_path_recv(
   }
 
   return meshcore_runtime_pending_discovery_handle(
-      key_prefix, &packet, (uint8_t *)out_path, path_len_field, extra_type, NULL,
-      0U);
+      key_prefix, &packet, (uint8_t *)out_path, path_len_field, extra_type,
+      (uint8_t *)out_path_snr, out_path_snr_count);
 }
 
 bool meshcore_test_runtime_simulate_trace_recv(uint32_t tag, uint8_t flags,

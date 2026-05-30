@@ -35,7 +35,7 @@ extern "C" {
  */
 
 /** Public ABI version for breaking interface revisions. */
-#define MESHCORE_ABI_VERSION 21U
+#define MESHCORE_ABI_VERSION 22U
 
 /** Size of an Ed25519 public key in bytes. */
 #define MESHCORE_PUBLIC_KEY_SIZE 32U
@@ -450,6 +450,8 @@ typedef struct meshcore_common_advert_event {
  * @brief Peer path event published by the runtime.
  */
 typedef struct meshcore_common_peer_path_event {
+  /** Request correlation tag. */
+  uint32_t tag;
   /** Peer public-key prefix. */
   uint8_t key_prefix[MESHCORE_NODE_KEY_PREFIX_BYTES];
   /** Path timestamp. */

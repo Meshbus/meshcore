@@ -725,6 +725,7 @@ int meshcore_platform_event_peer_path(
  *
  * @param key_prefix Peer public-key prefix.
  * @param state Host-visible trace state.
+ * @param tag Trace correlation tag.
  * @param out_path_snr Outbound path SNR values.
  * @param out_count Number of entries in @p out_path_snr.
  * @param return_path_snr Return path SNR values.
@@ -736,6 +737,7 @@ int meshcore_platform_event_peer_path(
  */
 int meshcore_platform_event_trace_path(const uint8_t *key_prefix,
                                        uint8_t state,
+                                       uint32_t tag,
                                        const int8_t *out_path_snr,
                                        uint8_t out_count,
                                        const int8_t *return_path_snr,
