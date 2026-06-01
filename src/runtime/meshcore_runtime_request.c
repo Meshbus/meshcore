@@ -412,8 +412,6 @@ static void meshcore_runtime_request_prepare_req_data(uint8_t req_data[9],
 
 static void meshcore_runtime_request_execute_node_discover_path(
     const struct meshcore_runtime_request_node_discover_path *request) {
-  static const uint16_t transport_codes[2] = {MESHCORE_SNR_TRANSPORT_CODE0,
-                                              MESHCORE_SNR_TRANSPORT_CODE1};
   struct meshcore_identity recipient;
   struct meshcore_packet *packet;
   uint8_t secret[MESHCORE_PUBLIC_KEY_SIZE];
@@ -452,16 +450,9 @@ static void meshcore_runtime_request_execute_node_discover_path(
     return;
   }
 
-  meshcore_runtime_pending_discovery_register(tag, request->public_key,
-                                              request->record_snr);
-  if (request->record_snr) {
-    meshcore_mesh_send_flood_by_transport_codes(
-        &meshcore_runtime_context_get()->mesh, packet, transport_codes, 0U,
-        meshcore_runtime_local_path_hash_size_get());
-  } else {
-    meshcore_mesh_send_flood(&meshcore_runtime_context_get()->mesh, packet, 0U,
-                             meshcore_runtime_local_path_hash_size_get());
-  }
+  meshcore_runtime_pending_discovery_register(tag, request->public_key);
+  meshcore_mesh_send_flood(&meshcore_runtime_context_get()->mesh, packet, 0U,
+                           meshcore_runtime_local_path_hash_size_get());
 }
 
 static void meshcore_runtime_request_execute_node_trace_path(
@@ -947,7 +938,6 @@ int meshcore_channel_data_send(const uint8_t *secret, size_t secret_len,
 }
 
 int meshcore_node_discover_path_request(const uint8_t *public_key,
-                                        bool record_snr,
                                         uint32_t *request_tag) {
   int rc = meshcore_runtime_require_initialized();
   union meshcore_runtime_request_data data;
@@ -973,7 +963,6 @@ int meshcore_node_discover_path_request(const uint8_t *public_key,
   memset(&data, 0, sizeof(data));
   memcpy(data.node_discover_path.public_key, public_key,
          sizeof(data.node_discover_path.public_key));
-  data.node_discover_path.record_snr = record_snr;
   data.node_discover_path.tag = tag;
   rc = meshcore_runtime_request_add(
       MESHCORE_RUNTIME_REQUEST_NODE_DISCOVER_PATH, &data);

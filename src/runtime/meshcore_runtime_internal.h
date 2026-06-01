@@ -98,7 +98,6 @@ struct meshcore_runtime_request_message_send_to_channel {
 
 struct meshcore_runtime_request_node_discover_path {
   uint8_t public_key[MESHCORE_PUBLIC_KEY_SIZE];
-  bool record_snr;
   uint32_t tag;
 };
 
@@ -177,7 +176,6 @@ struct meshcore_runtime_pending_discovery {
   uint32_t tag;
   unsigned long expires_at_ms;
   uint8_t key_prefix[MESHCORE_NODE_KEY_PREFIX_BYTES];
-  bool record_snr;
 };
 
 struct meshcore_runtime_pending_trace {
@@ -262,8 +260,7 @@ void meshcore_runtime_pending_trace_clear(void);
 void meshcore_runtime_pending_telemetry_clear(void);
 void meshcore_runtime_pending_binary_clear(void);
 void meshcore_runtime_pending_discovery_register(uint32_t tag,
-                                                 const uint8_t *key_prefix,
-                                                 bool record_snr);
+                                                 const uint8_t *key_prefix);
 void meshcore_runtime_pending_trace_register(uint32_t tag,
                                              const uint8_t *key_prefix);
 void meshcore_runtime_pending_telemetry_register(uint32_t tag,

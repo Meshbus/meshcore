@@ -162,7 +162,6 @@ int meshcore_channel_data_send(const uint8_t *secret, size_t secret_len,
  * @brief Request path discovery for a peer.
  *
  * @param public_key Full peer public key.
- * @param record_snr true to request SNR path records.
  * @param request_tag Optional request correlation tag storage. Pass NULL or
  * a pointer to zero to let the runtime generate a tag. A non-zero pointed
  * value is used as the request tag. On success, the actual request tag is
@@ -170,7 +169,6 @@ int meshcore_channel_data_send(const uint8_t *secret, size_t secret_len,
  * @return 0 on success, or a negative errno-style value.
  */
 int meshcore_node_discover_path_request(const uint8_t *public_key,
-                                        bool record_snr,
                                         uint32_t *request_tag);
 
 /**

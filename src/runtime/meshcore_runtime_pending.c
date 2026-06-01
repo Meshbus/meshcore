@@ -212,8 +212,7 @@ bool meshcore_runtime_expected_ack_handle(uint32_t ack_crc) {
 }
 
 void meshcore_runtime_pending_discovery_register(uint32_t tag,
-                                                        const uint8_t *key_prefix,
-                                                        bool record_snr) {
+                                                        const uint8_t *key_prefix) {
   if (key_prefix == NULL) {
     return;
   }
@@ -225,7 +224,6 @@ void meshcore_runtime_pending_discovery_register(uint32_t tag,
       meshcore_clock_millis_get() + MESHCORE_RUNTIME_REQUEST_TIMEOUT_MS;
   memcpy(meshcore_runtime_context_get()->pending_discovery.key_prefix, key_prefix,
          sizeof(meshcore_runtime_context_get()->pending_discovery.key_prefix));
-  meshcore_runtime_context_get()->pending_discovery.record_snr = record_snr;
 }
 
 void meshcore_runtime_pending_trace_register(uint32_t tag,
@@ -279,16 +277,12 @@ bool meshcore_runtime_pending_discovery_handle(
     uint8_t path_len_field, uint8_t extra_type, uint8_t *extra,
     uint8_t extra_len) {
   meshcore_common_peer_path_event_t event = {0};
-  int8_t out_path_snr[MESHCORE_MAX_PATH_LEN];
-  int8_t return_path_snr[MESHCORE_MAX_PATH_LEN];
   uint8_t out_path_len;
   uint8_t path_hash_size;
-  uint8_t out_snr_count = 0U;
-  uint8_t return_snr_count = 0U;
   uint32_t tag = 0U;
 
   if (!meshcore_runtime_context_get()->pending_discovery.valid || key_prefix == NULL ||
-      (extra_type != PATH_EXTRA_TYPE_SNR && extra_type != PAYLOAD_TYPE_RESPONSE) ||
+      extra_type != PAYLOAD_TYPE_RESPONSE ||
       memcmp(meshcore_runtime_context_get()->pending_discovery.key_prefix, key_prefix,
              sizeof(meshcore_runtime_context_get()->pending_discovery.key_prefix)) != 0 ||
       !meshcore_runtime_path_len_decode(path_len_field, &out_path_len,
@@ -298,44 +292,17 @@ bool meshcore_runtime_pending_discovery_handle(
   if (out_path_len > 0U && path == NULL) {
     return false;
   }
-  if (extra_type == PATH_EXTRA_TYPE_SNR &&
-      !meshcore_runtime_context_get()->pending_discovery.record_snr) {
+  if (extra == NULL || extra_len < sizeof(tag)) {
     return false;
   }
-  if (extra_type == PAYLOAD_TYPE_RESPONSE) {
-    if (extra == NULL || extra_len < sizeof(tag)) {
-      return false;
-    }
-    memcpy(&tag, extra, sizeof(tag));
-    if (meshcore_runtime_context_get()->pending_discovery.tag != tag) {
-      return false;
-    }
+  memcpy(&tag, extra, sizeof(tag));
+  if (meshcore_runtime_context_get()->pending_discovery.tag != tag) {
+    return false;
   }
 
   event.tag = meshcore_runtime_context_get()->pending_discovery.tag;
   if (out_path_len > 0U) {
     memcpy(event.out_path, path, out_path_len);
-  }
-  if (extra_type == PATH_EXTRA_TYPE_SNR && extra != NULL && extra_len >= 1U) {
-    out_snr_count = extra[0];
-    if (out_snr_count > (extra_len - 1U)) {
-      out_snr_count = (uint8_t)(extra_len - 1U);
-    }
-    out_snr_count = MIN(out_snr_count, (uint8_t)ARRAY_SIZE(out_path_snr));
-    if (out_snr_count > 0U) {
-      memcpy(out_path_snr, &extra[1], out_snr_count);
-    }
-    if (meshcore_runtime_extract_return_path_snrs(packet, return_path_snr,
-                                                  &return_snr_count)) {
-      meshcore_runtime_append_snr_with_trunc(
-          return_path_snr, &return_snr_count, ARRAY_SIZE(return_path_snr),
-          packet->snr_q4);
-    }
-  }
-
-  if (!meshcore_runtime_context_get()->pending_discovery.record_snr) {
-    out_snr_count = 0U;
-    return_snr_count = 0U;
   }
 
   memcpy(event.key_prefix, key_prefix, sizeof(event.key_prefix));
@@ -343,14 +310,6 @@ bool meshcore_runtime_pending_discovery_handle(
   event.last_seen_snr = packet == NULL ? 0 : packet->snr_q4;
   event.out_path_len = out_path_len;
   event.path_hash_size = path_hash_size;
-  event.out_path_snr_count = out_snr_count;
-  event.return_path_snr_count = return_snr_count;
-  if (out_snr_count > 0U) {
-    memcpy(event.out_path_snr, out_path_snr, out_snr_count);
-  }
-  if (return_snr_count > 0U) {
-    memcpy(event.return_path_snr, return_path_snr, return_snr_count);
-  }
 
   (void)meshcore_platform_bridge_peer_path_publish(&event, true);
   meshcore_runtime_pending_discovery_clear();
@@ -512,7 +471,6 @@ bool meshcore_test_runtime_pending_discovery_is_valid(void) {
 
 bool meshcore_test_runtime_pending_discovery_get(uint32_t *tag,
                                                  uint8_t *key_prefix,
-                                                 bool *record_snr,
                                                  unsigned long *expires_at_ms) {
   if (!meshcore_runtime_context_get()->pending_discovery.valid) {
     return false;
@@ -524,9 +482,6 @@ bool meshcore_test_runtime_pending_discovery_get(uint32_t *tag,
   if (key_prefix != NULL) {
     memcpy(key_prefix, meshcore_runtime_context_get()->pending_discovery.key_prefix,
            sizeof(meshcore_runtime_context_get()->pending_discovery.key_prefix));
-  }
-  if (record_snr != NULL) {
-    *record_snr = meshcore_runtime_context_get()->pending_discovery.record_snr;
   }
   if (expires_at_ms != NULL) {
     *expires_at_ms = meshcore_runtime_context_get()->pending_discovery.expires_at_ms;
