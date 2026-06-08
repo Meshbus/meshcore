@@ -338,7 +338,7 @@ typedef struct meshcore_common_message {
   meshcore_common_message_route_t route;
   /** Number of valid bytes in @ref target. */
   uint8_t target_len;
-  /** Peer key prefix for node messages. */
+  /** Peer key prefix for node messages, channel secret prefix for channels. */
   uint8_t target[MESHCORE_MESSAGE_TARGET_PREFIX_BYTES];
   /** NUL-terminated sender name when available. */
   char sender_name[MESHCORE_MESSAGE_SENDER_NAME_MAX_LEN];

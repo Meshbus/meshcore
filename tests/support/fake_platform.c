@@ -19,6 +19,8 @@ static uint32_t s_last_timer_deadline;
 static unsigned long s_now_ms = 1UL;
 static uint32_t s_now_s = 1U;
 static unsigned int s_radio_begin_count;
+static unsigned int s_message_count;
+static meshcore_common_message_t s_last_message;
 
 void meshcore_native_platform_reset(void)
 {
@@ -28,7 +30,10 @@ void meshcore_native_platform_reset(void)
   s_now_ms = 1UL;
   s_now_s = 1U;
   s_radio_begin_count = 0U;
+  s_message_count = 0U;
+  memset(&s_last_message, 0, sizeof(s_last_message));
 }
+
 unsigned int meshcore_native_platform_timer_arm_count_get(void)
 {
   return s_timer_arm_count;
@@ -37,6 +42,16 @@ unsigned int meshcore_native_platform_timer_arm_count_get(void)
 uint32_t meshcore_native_platform_last_timer_deadline_get(void)
 {
   return s_last_timer_deadline;
+}
+
+unsigned int meshcore_native_platform_message_count_get(void)
+{
+  return s_message_count;
+}
+
+const meshcore_common_message_t *meshcore_native_platform_last_message_get(void)
+{
+  return &s_last_message;
 }
 
 int meshcore_platform_timer_arm(uint32_t deadline_ms)
@@ -535,7 +550,10 @@ void meshcore_platform_runtime_request_error(uint8_t request_type,
 
 int meshcore_platform_event_message(const meshcore_common_message_t *message)
 {
-  (void)message;
+  if (message != NULL) {
+    s_last_message = *message;
+    s_message_count++;
+  }
   return 0;
 }
 

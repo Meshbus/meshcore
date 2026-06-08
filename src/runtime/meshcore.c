@@ -447,9 +447,9 @@ static void meshcore_runtime_channel_text_publish(
 
   message.type = MESHCORE_COMMON_MESSAGE_TYPE_RECEIVE_CHANNEL;
   message.route = meshcore_runtime_message_route_from_packet(packet);
-  message.target_len = MESHCORE_CHANNEL_HASH_BYTES;
-  memcpy(message.target, channel->hash,
-         MIN(sizeof(message.target), sizeof(channel->hash)));
+  message.target_len = MESHCORE_MESSAGE_TARGET_PREFIX_BYTES;
+  memcpy(message.target, channel->secret,
+         MIN(sizeof(message.target), sizeof(channel->secret)));
   message.payload_len =
       (uint16_t)MIN(payload_len, (size_t)sizeof(message.payload));
   memcpy(message.payload, payload, message.payload_len);
