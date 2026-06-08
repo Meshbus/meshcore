@@ -702,6 +702,14 @@ int meshcore_platform_event_message_ack(const uint8_t *target,
                                         uint8_t attempt);
 
 /**
+ * @brief Publish a received advert.
+ *
+ * @param advert Advert event.
+ * @return 0 on success, or a negative errno-style value.
+ */
+int meshcore_platform_event_advert(const meshcore_common_advert_event_t *advert);
+
+/**
  * @brief Publish a path-discovery result.
  *
  * @param peer_path Peer path event.

@@ -1169,21 +1169,36 @@ bool meshcore_mesh_runtime_filter_recv_flood_packet(struct meshcore_mesh *mesh,
 bool meshcore_mesh_runtime_allow_packet_forward(
     struct meshcore_mesh *mesh, const struct meshcore_packet *packet)
 {
-  (void)mesh;
+  if (mesh != NULL && mesh->runtime_ops != NULL &&
+      mesh->runtime_ops->allow_packet_forward != NULL) {
+    return mesh->runtime_ops->allow_packet_forward(mesh->runtime_user_data, mesh,
+                                                   packet);
+  }
+
   return meshcore_platform_bridge_mesh_allow_packet_forward(packet);
 }
 
 uint32_t meshcore_mesh_runtime_get_retransmit_delay(
     struct meshcore_mesh *mesh, const struct meshcore_packet *packet)
 {
-  (void)mesh;
+  if (mesh != NULL && mesh->runtime_ops != NULL &&
+      mesh->runtime_ops->get_retransmit_delay != NULL) {
+    return mesh->runtime_ops->get_retransmit_delay(mesh->runtime_user_data, mesh,
+                                                   packet);
+  }
+
   return meshcore_platform_bridge_mesh_retransmit_delay_get(packet);
 }
 
 uint32_t meshcore_mesh_runtime_get_direct_retransmit_delay(
     struct meshcore_mesh *mesh, const struct meshcore_packet *packet)
 {
-  (void)mesh;
+  if (mesh != NULL && mesh->runtime_ops != NULL &&
+      mesh->runtime_ops->get_direct_retransmit_delay != NULL) {
+    return mesh->runtime_ops->get_direct_retransmit_delay(
+        mesh->runtime_user_data, mesh, packet);
+  }
+
   return meshcore_platform_bridge_mesh_direct_retransmit_delay_get(packet);
 }
 
@@ -1262,7 +1277,14 @@ void meshcore_mesh_runtime_on_advert_recv(struct meshcore_mesh *mesh,
                                   uint32_t timestamp, const uint8_t *app_data,
                                   size_t app_data_len)
 {
-  (void)mesh;
+  if (mesh != NULL && mesh->runtime_ops != NULL &&
+      mesh->runtime_ops->on_advert_recv != NULL) {
+    mesh->runtime_ops->on_advert_recv(mesh->runtime_user_data, mesh, packet,
+                                      identity, timestamp, app_data,
+                                      app_data_len);
+    return;
+  }
+
   meshcore_platform_bridge_mesh_on_advert_recv(packet, identity, timestamp, app_data,
                                    app_data_len);
 }

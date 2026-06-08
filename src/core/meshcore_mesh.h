@@ -31,6 +31,14 @@ struct meshcore_mesh;
 struct meshcore_common_peer_identity;
 
 struct meshcore_mesh_runtime_ops {
+  bool (*allow_packet_forward)(void *user_data, struct meshcore_mesh *mesh,
+                               const struct meshcore_packet *packet);
+  uint32_t (*get_retransmit_delay)(void *user_data,
+                                   struct meshcore_mesh *mesh,
+                                   const struct meshcore_packet *packet);
+  uint32_t (*get_direct_retransmit_delay)(
+      void *user_data, struct meshcore_mesh *mesh,
+      const struct meshcore_packet *packet);
   void (*on_peer_data_recv)(void *user_data, struct meshcore_mesh *mesh,
                             struct meshcore_packet *packet, uint8_t type,
                             const struct meshcore_common_peer_identity *sender,
@@ -46,6 +54,11 @@ struct meshcore_mesh_runtime_ops {
       const struct meshcore_common_peer_identity *sender,
       const uint8_t *secret, uint8_t *path, uint8_t path_len,
       uint8_t extra_type, uint8_t *extra, uint8_t extra_len);
+  void (*on_advert_recv)(void *user_data, struct meshcore_mesh *mesh,
+                         struct meshcore_packet *packet,
+                         const struct meshcore_identity *identity,
+                         uint32_t timestamp, const uint8_t *app_data,
+                         size_t app_data_len);
   void (*on_control_data_recv)(void *user_data, struct meshcore_mesh *mesh,
                                struct meshcore_packet *packet);
   void (*on_raw_data_recv)(void *user_data, struct meshcore_mesh *mesh,

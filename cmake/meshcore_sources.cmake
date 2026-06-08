@@ -83,7 +83,11 @@ set(MESHCORE_PLATFORM_BRIDGE_SOURCES
 
 set(MESHCORE_RUNTIME_SOURCES
   ${MESHCORE_LIB_DIR}/src/runtime/meshcore.c
+  ${MESHCORE_LIB_DIR}/src/runtime/meshcore_runtime_control.c
   ${MESHCORE_LIB_DIR}/src/runtime/meshcore_runtime_pending.c
+  ${MESHCORE_LIB_DIR}/src/runtime/meshcore_runtime_policy.c
+  ${MESHCORE_LIB_DIR}/src/runtime/meshcore_runtime_publish.c
+  ${MESHCORE_LIB_DIR}/src/runtime/meshcore_runtime_receive.c
   ${MESHCORE_PLATFORM_BRIDGE_SOURCES}
   ${MESHCORE_LIB_DIR}/src/runtime/meshcore_runtime_request.c
 )

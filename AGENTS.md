@@ -104,8 +104,12 @@ meshcore/
       packet_manager, tables, advert_data, telemetry helpers, crypto
     runtime/
       meshcore.c                    lifecycle, event ingress, timer pump
-      meshcore_runtime_request.c    typed public request execution
+      meshcore_runtime_control.c    zero-hop control request behavior
       meshcore_runtime_pending.c    ACK and pending response correlation
+      meshcore_runtime_policy.c     runtime forwarding and delay policy
+      meshcore_runtime_publish.c    runtime result publication helpers
+      meshcore_runtime_receive.c    protocol receive callback behavior
+      meshcore_runtime_request.c    typed public request execution
       meshcore_runtime_bridge.h     internal protocol callback bridge
       meshcore_runtime_internal.h   private runtime state and helpers
     platform/

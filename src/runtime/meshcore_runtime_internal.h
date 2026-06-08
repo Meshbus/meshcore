@@ -244,9 +244,44 @@ bool meshcore_runtime_path_len_encode(uint8_t path_hash_size,
                                       uint8_t path_byte_len,
                                       uint8_t *out_path_len);
 int meshcore_runtime_sync_local_identity(void);
+bool meshcore_runtime_local_identity_get(
+    meshcore_common_node_identity_t *out);
+bool meshcore_runtime_local_role_is(meshcore_common_node_role_t role);
 bool meshcore_runtime_peer_path_get(const uint8_t *public_key,
                                     meshcore_common_peer_path_t *out,
                                     uint8_t *out_path_len);
+
+bool meshcore_runtime_protocol_allow_packet_forward(
+    void *user_data, struct meshcore_mesh *mesh,
+    const struct meshcore_packet *packet);
+uint32_t meshcore_runtime_protocol_get_retransmit_delay(
+    void *user_data, struct meshcore_mesh *mesh,
+    const struct meshcore_packet *packet);
+uint32_t meshcore_runtime_protocol_get_direct_retransmit_delay(
+    void *user_data, struct meshcore_mesh *mesh,
+    const struct meshcore_packet *packet);
+
+void meshcore_runtime_text_message_publish(
+    const meshcore_common_peer_identity_t *peer,
+    const struct meshcore_packet *packet, uint32_t sender_timestamp,
+    const uint8_t *text, size_t text_len);
+uint8_t meshcore_runtime_packet_path_copy(
+    const struct meshcore_packet *packet, uint8_t *dest, size_t dest_len);
+void meshcore_runtime_channel_text_publish(
+    const struct meshcore_group_channel *channel,
+    const struct meshcore_packet *packet, uint32_t sender_timestamp,
+    const uint8_t *text, size_t text_len);
+void meshcore_runtime_peer_path_publish(
+    struct meshcore_packet *packet, const meshcore_common_peer_identity_t *peer,
+    uint8_t *path, uint8_t path_len, uint8_t extra_type, uint8_t *extra,
+    uint8_t extra_len);
+bool meshcore_runtime_advert_publish(
+    const struct meshcore_packet *packet,
+    const struct meshcore_identity *identity, uint32_t timestamp,
+    const struct meshcore_advert_data_parser *parser);
+
+bool meshcore_runtime_handle_control_discover_request(
+    struct meshcore_packet *packet);
 
 void meshcore_runtime_correlation_cleanup(unsigned long now_ms);
 bool meshcore_runtime_correlation_next_deadline_get(uint32_t now_ms,

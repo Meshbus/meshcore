@@ -520,6 +520,12 @@ int meshcore_platform_event_message_ack(const uint8_t *target, uint8_t attempt)
   return 0;
 }
 
+int meshcore_platform_event_advert(const meshcore_common_advert_event_t *advert)
+{
+  UNUSED(advert);
+  return 0;
+}
+
 int meshcore_platform_event_peer_path_publish(
     const meshcore_common_peer_path_event_t *peer_path, bool is_discover)
 {

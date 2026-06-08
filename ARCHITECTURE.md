@@ -177,6 +177,18 @@ Target runtime responsibilities:
 - publish observable results through explicit platform events
 - schedule next work through host callbacks or explicit deadline reporting
 
+Runtime source layout follows behavior responsibility:
+
+- `meshcore.c`: singleton context, lifecycle, timer/deadline pump, radio RX/TX
+  ingress, and protocol callback registration
+- `meshcore_runtime_request.c`: typed public request execution
+- `meshcore_runtime_pending.c`: ACK and pending response correlation
+- `meshcore_runtime_policy.c`: runtime forwarding and delay policy
+- `meshcore_runtime_receive.c`: protocol receive callbacks and receive
+  dispatch
+- `meshcore_runtime_control.c`: zero-hop control request behavior
+- `meshcore_runtime_publish.c`: platform event publication helpers
+
 ### Runtime State And Memory Ownership
 
 The public runtime ABI remains a singleton facade. Internally, the runtime

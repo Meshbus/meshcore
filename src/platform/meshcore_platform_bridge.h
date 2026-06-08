@@ -72,6 +72,8 @@ int meshcore_platform_bridge_message_handler(
     const meshcore_common_message_t *message);
 int meshcore_platform_bridge_message_ack_handler(const uint8_t *target,
                                               uint8_t attempt);
+int meshcore_platform_bridge_advert_handler(
+    const meshcore_common_advert_event_t *advert);
 int meshcore_platform_bridge_peer_path_publish(
     const meshcore_common_peer_path_event_t *peer_path, bool is_discover);
 int meshcore_platform_bridge_peer_path_handler(
