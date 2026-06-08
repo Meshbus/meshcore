@@ -126,6 +126,72 @@ void meshcore_runtime_channel_text_publish(
   (void)meshcore_platform_bridge_message_handler(&message);
 }
 
+void meshcore_runtime_channel_data_publish(
+    const struct meshcore_group_channel *channel,
+    const struct meshcore_packet *packet, const uint8_t *data, size_t len) {
+  meshcore_common_channel_data_event_t event = {0};
+  uint16_t data_type;
+  uint8_t data_len;
+  size_t available_len;
+
+  if (channel == NULL || packet == NULL || data == NULL || len < 3U) {
+    return;
+  }
+
+  data_type = (uint16_t)data[0] | ((uint16_t)data[1] << 8);
+  data_len = data[2];
+  available_len = len - 3U;
+  if (data_len > available_len || data_len > sizeof(event.payload)) {
+    return;
+  }
+
+  memcpy(event.channel_hash, channel->hash, sizeof(event.channel_hash));
+  event.path_len =
+      meshcore_runtime_packet_path_copy(packet, event.path, sizeof(event.path));
+  event.data_type = data_type;
+  event.payload_len = data_len;
+  if (data_len > 0U) {
+    memcpy(event.payload, &data[3], data_len);
+  }
+  event.has_rx_snr = true;
+  event.rx_snr_q4 = packet->snr_q4;
+  (void)meshcore_platform_bridge_channel_data_handler(&event);
+}
+
+void meshcore_runtime_control_data_publish(struct meshcore_packet *packet) {
+  meshcore_common_control_data_event_t event = {0};
+
+  if (packet == NULL || packet->payload_len == 0U ||
+      packet->payload_len > sizeof(event.payload)) {
+    return;
+  }
+
+  event.path_len =
+      meshcore_runtime_packet_path_copy(packet, event.path, sizeof(event.path));
+  event.payload_len = (uint8_t)packet->payload_len;
+  memcpy(event.payload, packet->payload, event.payload_len);
+  event.has_rx_snr = true;
+  event.rx_snr_q4 = packet->snr_q4;
+  (void)meshcore_platform_bridge_control_data_handler(&event);
+}
+
+void meshcore_runtime_raw_data_publish(struct meshcore_packet *packet) {
+  meshcore_common_raw_data_event_t event = {0};
+
+  if (packet == NULL || packet->payload_len == 0U ||
+      packet->payload_len > sizeof(event.payload)) {
+    return;
+  }
+
+  event.path_len =
+      meshcore_runtime_packet_path_copy(packet, event.path, sizeof(event.path));
+  event.payload_len = (uint8_t)packet->payload_len;
+  memcpy(event.payload, packet->payload, event.payload_len);
+  event.has_rx_snr = true;
+  event.rx_snr_q4 = packet->snr_q4;
+  (void)meshcore_platform_bridge_raw_data_handler(&event);
+}
+
 void meshcore_runtime_peer_path_publish(
     struct meshcore_packet *packet, const meshcore_common_peer_identity_t *peer,
     uint8_t *path, uint8_t path_len, uint8_t extra_type, uint8_t *extra,

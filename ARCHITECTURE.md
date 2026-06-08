@@ -187,7 +187,8 @@ Runtime source layout follows behavior responsibility:
 - `meshcore_runtime_receive.c`: protocol receive callbacks and receive
   dispatch
 - `meshcore_runtime_control.c`: zero-hop control request behavior
-- `meshcore_runtime_publish.c`: platform event publication helpers
+- `meshcore_runtime_event_publish.c`: host-facing event construction and
+  platform publication helpers
 
 ### Runtime State And Memory Ownership
 

@@ -271,6 +271,11 @@ void meshcore_runtime_channel_text_publish(
     const struct meshcore_group_channel *channel,
     const struct meshcore_packet *packet, uint32_t sender_timestamp,
     const uint8_t *text, size_t text_len);
+void meshcore_runtime_channel_data_publish(
+    const struct meshcore_group_channel *channel,
+    const struct meshcore_packet *packet, const uint8_t *data, size_t len);
+void meshcore_runtime_control_data_publish(struct meshcore_packet *packet);
+void meshcore_runtime_raw_data_publish(struct meshcore_packet *packet);
 void meshcore_runtime_peer_path_publish(
     struct meshcore_packet *packet, const meshcore_common_peer_identity_t *peer,
     uint8_t *path, uint8_t path_len, uint8_t extra_type, uint8_t *extra,

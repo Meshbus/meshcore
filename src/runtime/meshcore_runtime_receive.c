@@ -469,47 +469,30 @@ void meshcore_runtime_on_advert_recv(struct meshcore_packet *packet,
 }
 
 void meshcore_runtime_on_control_data_recv(struct meshcore_packet *packet) {
-  meshcore_common_control_data_event_t event = {0};
-
   if (!meshcore_runtime_context_get()->initialized) {
     meshcore_platform_bridge_mesh_on_control_data_recv(packet);
     return;
   }
   if (packet == NULL || packet->payload_len == 0U ||
-      packet->payload_len > sizeof(event.payload)) {
+      packet->payload_len > MESHCORE_MAX_CONTROL_DATA_PAYLOAD_LEN) {
     return;
   }
 
   (void)meshcore_runtime_handle_control_discover_request(packet);
-
-  event.path_len =
-      meshcore_runtime_packet_path_copy(packet, event.path, sizeof(event.path));
-  event.payload_len = (uint8_t)packet->payload_len;
-  memcpy(event.payload, packet->payload, event.payload_len);
-  event.has_rx_snr = true;
-  event.rx_snr_q4 = packet->snr_q4;
-  (void)meshcore_platform_bridge_control_data_handler(&event);
+  meshcore_runtime_control_data_publish(packet);
 }
 
 void meshcore_runtime_on_raw_data_recv(struct meshcore_packet *packet) {
-  meshcore_common_raw_data_event_t event = {0};
-
   if (!meshcore_runtime_context_get()->initialized) {
     meshcore_platform_bridge_mesh_on_raw_data_recv(packet);
     return;
   }
   if (packet == NULL || packet->payload_len == 0U ||
-      packet->payload_len > sizeof(event.payload)) {
+      packet->payload_len > MESHCORE_MAX_RAW_DATA_PAYLOAD_LEN) {
     return;
   }
 
-  event.path_len =
-      meshcore_runtime_packet_path_copy(packet, event.path, sizeof(event.path));
-  event.payload_len = (uint8_t)packet->payload_len;
-  memcpy(event.payload, packet->payload, event.payload_len);
-  event.has_rx_snr = true;
-  event.rx_snr_q4 = packet->snr_q4;
-  (void)meshcore_platform_bridge_raw_data_handler(&event);
+  meshcore_runtime_raw_data_publish(packet);
 }
 
 void meshcore_runtime_on_group_data_recv(
@@ -538,29 +521,7 @@ void meshcore_runtime_on_group_data_recv(
                                             &data[5], text_len);
     }
   } else if (type == PAYLOAD_TYPE_GRP_DATA && len >= 3U) {
-    meshcore_common_channel_data_event_t event = {0};
-    uint16_t data_type;
-    uint8_t data_len;
-    size_t available_len;
-
-    data_type = (uint16_t)data[0] | ((uint16_t)data[1] << 8);
-    data_len = data[2];
-    available_len = len - 3U;
-    if (data_len > available_len || data_len > sizeof(event.payload)) {
-      return;
-    }
-
-    memcpy(event.channel_hash, channel->hash, sizeof(event.channel_hash));
-    event.path_len =
-        meshcore_runtime_packet_path_copy(packet, event.path, sizeof(event.path));
-    event.data_type = data_type;
-    event.payload_len = data_len;
-    if (data_len > 0U) {
-      memcpy(event.payload, &data[3], data_len);
-    }
-    event.has_rx_snr = true;
-    event.rx_snr_q4 = packet->snr_q4;
-    (void)meshcore_platform_bridge_channel_data_handler(&event);
+    meshcore_runtime_channel_data_publish(channel, packet, data, len);
   }
 }
 
