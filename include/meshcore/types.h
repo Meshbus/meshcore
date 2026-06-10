@@ -35,7 +35,7 @@ extern "C" {
  */
 
 /** Public ABI version for breaking interface revisions. */
-#define MESHCORE_ABI_VERSION 22U
+#define MESHCORE_ABI_VERSION 23U
 
 /** Size of an Ed25519 public key in bytes. */
 #define MESHCORE_PUBLIC_KEY_SIZE 32U
@@ -96,6 +96,8 @@ extern "C" {
 #define MESHCORE_MAX_TELEMETRY_PAYLOAD_LEN 230U
 /** Maximum channel matches returned by channel hash search. */
 #define MESHCORE_CHANNEL_SEARCH_MAX_MATCHES 4U
+/** Public-key prefix length used by node-discover prefix responses. */
+#define MESHCORE_NODE_DISCOVER_PUBLIC_KEY_PREFIX_BYTES 8U
 
 /** Peer request payload type. */
 #define MESHCORE_PACKET_PAYLOAD_TYPE_REQ 0x00U
@@ -142,6 +144,18 @@ typedef enum meshcore_common_node_role {
   /** Sensor node. */
   MESHCORE_COMMON_NODE_ROLE_SENSOR = 4,
 } meshcore_common_node_role_t;
+
+/** Node-discover filter bit for chat/user nodes. */
+#define MESHCORE_NODE_DISCOVER_FILTER_CHAT (1U << MESHCORE_COMMON_NODE_ROLE_CHAT)
+/** Node-discover filter bit for repeater nodes. */
+#define MESHCORE_NODE_DISCOVER_FILTER_REPEATER                                            \
+  (1U << MESHCORE_COMMON_NODE_ROLE_REPEATER)
+/** Node-discover filter bit for room nodes. */
+#define MESHCORE_NODE_DISCOVER_FILTER_ROOM (1U << MESHCORE_COMMON_NODE_ROLE_ROOM)
+/** Node-discover filter bit for sensor nodes. */
+#define MESHCORE_NODE_DISCOVER_FILTER_SENSOR (1U << MESHCORE_COMMON_NODE_ROLE_SENSOR)
+/** Node-discover filter for every upstream role bit. */
+#define MESHCORE_NODE_DISCOVER_FILTER_ALL 0xFFU
 
 /**
  * @brief Loop detection policy requested by the host.
@@ -411,6 +425,28 @@ typedef struct meshcore_common_control_data_event {
   /** Receive SNR in quarter-dB units. */
   int8_t rx_snr_q4;
 } meshcore_common_control_data_event_t;
+
+/**
+ * @brief Node-discover response event published by the runtime.
+ */
+typedef struct meshcore_common_node_discover_event {
+  /** Response node role decoded from the control-data response type. */
+  meshcore_common_node_role_t role;
+  /** Request correlation tag echoed by the response. */
+  uint32_t tag;
+  /** Number of valid bytes in @ref public_key. Usually 8 or 32. */
+  uint8_t public_key_len;
+  /** Response public-key prefix or full public key. */
+  uint8_t public_key[MESHCORE_PUBLIC_KEY_SIZE];
+  /** Number of valid bytes in @ref path. */
+  uint8_t path_len;
+  /** Encoded source path. */
+  uint8_t path[MESHCORE_MAX_PATH_LEN];
+  /** SNR measured by the responder when it received the request. */
+  int8_t uplink_snr;
+  /** SNR measured locally when this node received the response. */
+  int8_t downlink_snr;
+} meshcore_common_node_discover_event_t;
 
 /**
  * @brief Advert event published by the runtime.

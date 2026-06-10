@@ -18,13 +18,18 @@ bool meshcore_runtime_handle_control_discover_request(
   uint32_t tag;
   uint32_t since = 0U;
   uint8_t filter;
+  uint8_t advert_type;
   bool prefix_only;
 
   if (packet == NULL || packet->payload_len < 6U ||
-      !meshcore_runtime_local_role_is(MESHCORE_COMMON_NODE_ROLE_REPEATER) ||
       (packet->payload[0] & 0xF0U) != MESHCORE_RUNTIME_CTL_TYPE_NODE_DISCOVER_REQ ||
       meshcore_platform_bridge_node_config_last_modify_get(&last_modify) != 0 ||
       !meshcore_runtime_local_identity_get(&identity)) {
+    return false;
+  }
+
+  advert_type = meshcore_runtime_role_to_advert_type(identity.role);
+  if (advert_type == ADV_TYPE_NONE) {
     return false;
   }
 
@@ -33,12 +38,12 @@ bool meshcore_runtime_handle_control_discover_request(
   if (packet->payload_len >= 10U) {
     memcpy(&since, &packet->payload[6], sizeof(since));
   }
-  if ((filter & (1U << ADV_TYPE_REPEATER)) == 0U || last_modify < since) {
+  if ((filter & (1U << advert_type)) == 0U || last_modify < since) {
     return false;
   }
 
   prefix_only = (packet->payload[0] & 0x01U) != 0U;
-  data[0] = MESHCORE_RUNTIME_CTL_TYPE_NODE_DISCOVER_RESP | ADV_TYPE_REPEATER;
+  data[0] = MESHCORE_RUNTIME_CTL_TYPE_NODE_DISCOVER_RESP | advert_type;
   data[1] = (uint8_t)(packet->snr_q4 & 0xFFU);
   memcpy(&data[2], &tag, sizeof(tag));
   memcpy(&data[6], identity.public_key, sizeof(identity.public_key));

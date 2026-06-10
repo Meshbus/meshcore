@@ -92,6 +92,8 @@ int meshcore_platform_bridge_binary_response_handler(const uint8_t *key_prefix,
                                                   uint32_t tag,
                                                   const uint8_t *payload,
                                                   size_t payload_len);
+int meshcore_platform_bridge_node_discover_handler(
+    const meshcore_common_node_discover_event_t *event);
 int meshcore_platform_bridge_channel_data_handler(
     const meshcore_common_channel_data_event_t *event);
 int meshcore_platform_bridge_raw_data_handler(

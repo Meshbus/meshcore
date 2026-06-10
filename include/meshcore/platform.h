@@ -785,6 +785,15 @@ int meshcore_platform_event_binary_response(const uint8_t *key_prefix,
                                             size_t payload_len);
 
 /**
+ * @brief Publish a node-discover response.
+ *
+ * @param event Node-discover response event.
+ * @return 0 on success, or a negative errno-style value.
+ */
+int meshcore_platform_event_node_discover(
+    const meshcore_common_node_discover_event_t *event);
+
+/**
  * @brief Publish a channel binary-data event.
  *
  * @param event Channel data event.

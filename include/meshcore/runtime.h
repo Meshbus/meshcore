@@ -229,6 +229,23 @@ int meshcore_node_binary_request_with_tag(const uint8_t *public_key,
                                           uint32_t tag);
 
 /**
+ * @brief Send a zero-hop node-discover request.
+ *
+ * @param filter Bitmask of @c MESHCORE_NODE_DISCOVER_FILTER_* values.
+ * @param prefix_only true to request 8-byte public-key prefixes; false to
+ * request full public keys from responders.
+ * @param since Minimum responder configuration-modified timestamp. Pass 0 to
+ * accept all matching responders.
+ * @param request_tag Optional request correlation tag storage. Pass NULL or a
+ * pointer to zero to let the runtime generate a tag. A non-zero pointed value
+ * is used as the request tag. On success, the actual request tag is written
+ * back to this pointer when provided.
+ * @return 0 on success, or a negative errno-style value.
+ */
+int meshcore_node_discover_request(uint8_t filter, bool prefix_only,
+                                   uint32_t since, uint32_t *request_tag);
+
+/**
  * @brief Send an application raw-custom packet over an encoded path.
  *
  * @param path Encoded direct path bytes.

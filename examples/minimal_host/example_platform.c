@@ -592,6 +592,13 @@ int meshcore_platform_event_binary_response(const uint8_t *key_prefix,
   return 0;
 }
 
+int meshcore_platform_event_node_discover(
+    const meshcore_common_node_discover_event_t *event)
+{
+  UNUSED(event);
+  return 0;
+}
+
 int meshcore_platform_event_channel_data(
     const meshcore_common_channel_data_event_t *event)
 {

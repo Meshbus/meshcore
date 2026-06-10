@@ -10,6 +10,9 @@
 
 #include "meshcore_platform_bridge.h"
 
+static meshcore_common_node_role_t
+meshcore_runtime_role_from_advert_type(uint8_t type);
+
 static meshcore_common_message_route_t
 meshcore_runtime_message_route_from_packet(const struct meshcore_packet *packet) {
   if (packet == NULL) {
@@ -173,6 +176,41 @@ void meshcore_runtime_control_data_publish(struct meshcore_packet *packet) {
   event.has_rx_snr = true;
   event.rx_snr_q4 = packet->snr_q4;
   (void)meshcore_platform_bridge_control_data_handler(&event);
+}
+
+void meshcore_runtime_node_discover_publish(struct meshcore_packet *packet) {
+  meshcore_common_node_discover_event_t event = {0};
+  uint8_t advert_type;
+  size_t key_len;
+
+  if (packet == NULL || packet->payload_len < 6U ||
+      (packet->payload[0] & 0xF0U) != MESHCORE_RUNTIME_CTL_TYPE_NODE_DISCOVER_RESP) {
+    return;
+  }
+
+  advert_type = packet->payload[0] & 0x0FU;
+  event.role = meshcore_runtime_role_from_advert_type(advert_type);
+  if (event.role == MESHCORE_COMMON_NODE_ROLE_NONE) {
+    return;
+  }
+
+  key_len = (size_t)packet->payload_len - 6U;
+  if (key_len < MESHCORE_NODE_DISCOVER_PUBLIC_KEY_PREFIX_BYTES) {
+    return;
+  }
+  if (key_len > sizeof(event.public_key)) {
+    key_len = sizeof(event.public_key);
+  }
+
+  event.path_len =
+      meshcore_runtime_packet_path_copy(packet, event.path, sizeof(event.path));
+  event.public_key_len = (uint8_t)key_len;
+  event.uplink_snr = (int8_t)packet->payload[1];
+  memcpy(&event.tag, &packet->payload[2], sizeof(event.tag));
+  memcpy(event.public_key, &packet->payload[6], key_len);
+  event.downlink_snr = packet->snr_q4;
+
+  (void)meshcore_platform_bridge_node_discover_handler(&event);
 }
 
 void meshcore_runtime_raw_data_publish(struct meshcore_packet *packet) {

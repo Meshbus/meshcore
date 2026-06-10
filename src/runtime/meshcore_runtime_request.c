@@ -33,6 +33,7 @@ static bool meshcore_runtime_request_needs_packet(uint8_t type) {
     case MESHCORE_RUNTIME_REQUEST_NODE_TRACE_PATH:
     case MESHCORE_RUNTIME_REQUEST_NODE_TELEMETRY:
     case MESHCORE_RUNTIME_REQUEST_NODE_BINARY:
+    case MESHCORE_RUNTIME_REQUEST_NODE_DISCOVER:
     case MESHCORE_RUNTIME_REQUEST_CHANNEL_DATA:
     case MESHCORE_RUNTIME_REQUEST_RAW_DATA:
     case MESHCORE_RUNTIME_REQUEST_CONTROL_DATA:
@@ -179,6 +180,10 @@ static int meshcore_runtime_request_validate_node_binary(
   }
 
   return 0;
+}
+
+static int meshcore_runtime_request_validate_node_discover(uint8_t filter) {
+  return filter == 0U ? -EINVAL : 0;
 }
 
 static int meshcore_runtime_request_add(
@@ -651,6 +656,34 @@ static void meshcore_runtime_request_execute_node_binary(
   }
 }
 
+static void meshcore_runtime_request_execute_node_discover(
+    const struct meshcore_runtime_request_node_discover *request) {
+  struct meshcore_packet *packet;
+  uint8_t data[10U];
+
+  if (request == NULL) {
+    return;
+  }
+
+  data[0] = MESHCORE_RUNTIME_CTL_TYPE_NODE_DISCOVER_REQ;
+  if (request->prefix_only) {
+    data[0] |= 0x01U;
+  }
+  data[1] = request->filter;
+  memcpy(&data[2], &request->tag, sizeof(request->tag));
+  memcpy(&data[6], &request->since, sizeof(request->since));
+
+  packet = meshcore_mesh_create_control_data(&meshcore_runtime_context_get()->mesh,
+                                             data, sizeof(data));
+  if (packet == NULL) {
+    meshcore_runtime_request_log_transient_failure(
+        MESHCORE_RUNTIME_REQUEST_NODE_DISCOVER, -ENOBUFS);
+    return;
+  }
+
+  meshcore_mesh_send_zero_hop(&meshcore_runtime_context_get()->mesh, packet, 0U);
+}
+
 static void meshcore_runtime_request_execute_channel_data(
     const struct meshcore_runtime_request_channel_data *request) {
   struct meshcore_group_channel channel;
@@ -774,6 +807,9 @@ static void meshcore_runtime_request_execute(
       break;
     case MESHCORE_RUNTIME_REQUEST_NODE_BINARY:
       meshcore_runtime_request_execute_node_binary(&request->data.node_binary);
+      break;
+    case MESHCORE_RUNTIME_REQUEST_NODE_DISCOVER:
+      meshcore_runtime_request_execute_node_discover(&request->data.node_discover);
       break;
     case MESHCORE_RUNTIME_REQUEST_CHANNEL_DATA:
       meshcore_runtime_request_execute_channel_data(&request->data.channel_data);
@@ -1077,6 +1113,42 @@ int meshcore_node_binary_request_with_tag(const uint8_t *public_key,
   data.node_binary.tag = tag;
   return meshcore_runtime_request_add(MESHCORE_RUNTIME_REQUEST_NODE_BINARY,
                                       &data);
+}
+
+int meshcore_node_discover_request(uint8_t filter, bool prefix_only,
+                                   uint32_t since, uint32_t *request_tag) {
+  int rc = meshcore_runtime_require_initialized();
+  union meshcore_runtime_request_data data;
+  uint32_t tag = 0U;
+
+  if (rc != 0) {
+    return rc;
+  }
+
+  rc = meshcore_runtime_request_validate_node_discover(filter);
+  if (rc != 0) {
+    return rc;
+  }
+
+  if (request_tag != NULL) {
+    tag = *request_tag;
+  }
+  if (tag == 0U) {
+    tag = meshcore_clock_rtc_get_current_time_unique(
+        &meshcore_runtime_context_get()->rtc_clock_state);
+  }
+
+  memset(&data, 0, sizeof(data));
+  data.node_discover.filter = filter;
+  data.node_discover.prefix_only = prefix_only;
+  data.node_discover.since = since;
+  data.node_discover.tag = tag;
+  rc = meshcore_runtime_request_add(MESHCORE_RUNTIME_REQUEST_NODE_DISCOVER,
+                                    &data);
+  if (rc == 0 && request_tag != NULL) {
+    *request_tag = tag;
+  }
+  return rc;
 }
 
 int meshcore_raw_data_send(const uint8_t *path, uint8_t path_len,

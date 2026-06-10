@@ -479,6 +479,7 @@ void meshcore_runtime_on_control_data_recv(struct meshcore_packet *packet) {
   }
 
   (void)meshcore_runtime_handle_control_discover_request(packet);
+  meshcore_runtime_node_discover_publish(packet);
   meshcore_runtime_control_data_publish(packet);
 }
 

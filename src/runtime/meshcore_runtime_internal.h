@@ -67,6 +67,7 @@ enum meshcore_runtime_request_type {
   MESHCORE_RUNTIME_REQUEST_NODE_TRACE_PATH,
   MESHCORE_RUNTIME_REQUEST_NODE_TELEMETRY,
   MESHCORE_RUNTIME_REQUEST_NODE_BINARY,
+  MESHCORE_RUNTIME_REQUEST_NODE_DISCOVER,
   MESHCORE_RUNTIME_REQUEST_CHANNEL_DATA,
   MESHCORE_RUNTIME_REQUEST_RAW_DATA,
   MESHCORE_RUNTIME_REQUEST_CONTROL_DATA,
@@ -119,6 +120,13 @@ struct meshcore_runtime_request_node_binary {
   uint32_t tag;
 };
 
+struct meshcore_runtime_request_node_discover {
+  uint8_t filter;
+  bool prefix_only;
+  uint32_t since;
+  uint32_t tag;
+};
+
 struct meshcore_runtime_request_channel_data {
   uint8_t secret[MESHCORE_CHANNEL_SECRET_MAX_LEN];
   size_t secret_len;
@@ -151,6 +159,7 @@ union meshcore_runtime_request_data {
   struct meshcore_runtime_request_node_trace_path node_trace_path;
   struct meshcore_runtime_request_node_telemetry node_telemetry;
   struct meshcore_runtime_request_node_binary node_binary;
+  struct meshcore_runtime_request_node_discover node_discover;
   struct meshcore_runtime_request_channel_data channel_data;
   struct meshcore_runtime_request_raw_data raw_data;
   struct meshcore_runtime_request_control_data control_data;
@@ -275,6 +284,7 @@ void meshcore_runtime_channel_data_publish(
     const struct meshcore_group_channel *channel,
     const struct meshcore_packet *packet, const uint8_t *data, size_t len);
 void meshcore_runtime_control_data_publish(struct meshcore_packet *packet);
+void meshcore_runtime_node_discover_publish(struct meshcore_packet *packet);
 void meshcore_runtime_raw_data_publish(struct meshcore_packet *packet);
 void meshcore_runtime_peer_path_publish(
     struct meshcore_packet *packet, const meshcore_common_peer_identity_t *peer,

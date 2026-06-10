@@ -318,6 +318,11 @@ int meshcore_platform_bridge_binary_response_handler(const uint8_t *key_prefix,
                                                  payload, payload_len);
 }
 
+int meshcore_platform_bridge_node_discover_handler(
+    const meshcore_common_node_discover_event_t *event) {
+  return meshcore_platform_event_node_discover(event);
+}
+
 int meshcore_platform_bridge_channel_data_handler(
     const meshcore_common_channel_data_event_t *event) {
   return meshcore_platform_event_channel_data(event);
