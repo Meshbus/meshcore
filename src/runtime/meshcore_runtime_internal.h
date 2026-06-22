@@ -71,6 +71,8 @@ enum meshcore_runtime_request_type {
   MESHCORE_RUNTIME_REQUEST_CHANNEL_DATA,
   MESHCORE_RUNTIME_REQUEST_RAW_DATA,
   MESHCORE_RUNTIME_REQUEST_CONTROL_DATA,
+  MESHCORE_RUNTIME_REQUEST_NODE_BINARY_RESPONSE,
+  MESHCORE_RUNTIME_REQUEST_NODE_ANON_DATA,
 };
 
 struct meshcore_runtime_request_node_advert {
@@ -120,6 +122,18 @@ struct meshcore_runtime_request_node_binary {
   uint32_t tag;
 };
 
+struct meshcore_runtime_request_node_anon_data {
+  uint8_t public_key[MESHCORE_PUBLIC_KEY_SIZE];
+  uint8_t payload[MESHCORE_MAX_ANON_DATA_PAYLOAD_LEN];
+  size_t payload_len;
+};
+
+struct meshcore_runtime_request_node_binary_response {
+  meshcore_common_binary_request_event_t request;
+  uint8_t payload[MESHCORE_MAX_SERVICE_RESPONSE_PAYLOAD_LEN];
+  size_t payload_len;
+};
+
 struct meshcore_runtime_request_node_discover {
   uint8_t filter;
   bool prefix_only;
@@ -163,6 +177,8 @@ union meshcore_runtime_request_data {
   struct meshcore_runtime_request_channel_data channel_data;
   struct meshcore_runtime_request_raw_data raw_data;
   struct meshcore_runtime_request_control_data control_data;
+  struct meshcore_runtime_request_node_binary_response node_binary_response;
+  struct meshcore_runtime_request_node_anon_data node_anon_data;
 };
 
 struct meshcore_runtime_request_slot {
@@ -286,6 +302,10 @@ void meshcore_runtime_channel_data_publish(
 void meshcore_runtime_control_data_publish(struct meshcore_packet *packet);
 void meshcore_runtime_node_discover_publish(struct meshcore_packet *packet);
 void meshcore_runtime_raw_data_publish(struct meshcore_packet *packet);
+void meshcore_runtime_binary_request_publish(
+    const meshcore_common_peer_identity_t *peer,
+    const struct meshcore_packet *packet, uint32_t tag, const uint8_t *payload,
+    size_t payload_len);
 void meshcore_runtime_peer_path_publish(
     struct meshcore_packet *packet, const meshcore_common_peer_identity_t *peer,
     uint8_t *path, uint8_t path_len, uint8_t extra_type, uint8_t *extra,

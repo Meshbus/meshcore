@@ -579,6 +579,13 @@ int meshcore_platform_event_telemetry(const uint8_t *key_prefix,
   return 0;
 }
 
+int meshcore_platform_event_binary_request(
+    const meshcore_common_binary_request_event_t *event)
+{
+  UNUSED(event);
+  return 0;
+}
+
 int meshcore_platform_event_binary_response(const uint8_t *key_prefix,
                                             uint32_t timestamp, uint32_t tag,
                                             const uint8_t *payload,

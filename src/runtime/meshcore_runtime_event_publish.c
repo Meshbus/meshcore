@@ -230,6 +230,32 @@ void meshcore_runtime_raw_data_publish(struct meshcore_packet *packet) {
   (void)meshcore_platform_bridge_raw_data_handler(&event);
 }
 
+void meshcore_runtime_binary_request_publish(
+    const meshcore_common_peer_identity_t *peer,
+    const struct meshcore_packet *packet, uint32_t tag, const uint8_t *payload,
+    size_t payload_len) {
+  meshcore_common_binary_request_event_t event = {0};
+
+  if (peer == NULL || packet == NULL || payload == NULL ||
+      payload_len == 0U || payload_len > sizeof(event.payload) || tag == 0U) {
+    return;
+  }
+
+  event.route = meshcore_runtime_message_route_from_packet(packet);
+  memcpy(event.key_prefix, peer->public_key, sizeof(event.key_prefix));
+  event.tag = tag;
+  memcpy(event.public_key, peer->public_key, sizeof(event.public_key));
+  event.path_len = (uint8_t)packet->path_len;
+  (void)meshcore_runtime_packet_path_copy(packet, event.path,
+                                          sizeof(event.path));
+  event.payload_len = (uint8_t)payload_len;
+  memcpy(event.payload, payload, payload_len);
+  event.has_rx_snr = true;
+  event.rx_snr_q4 = packet->snr_q4;
+
+  (void)meshcore_platform_bridge_binary_request_handler(&event);
+}
+
 void meshcore_runtime_peer_path_publish(
     struct meshcore_packet *packet, const meshcore_common_peer_identity_t *peer,
     uint8_t *path, uint8_t path_len, uint8_t extra_type, uint8_t *extra,

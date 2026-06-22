@@ -229,6 +229,34 @@ int meshcore_node_binary_request_with_tag(const uint8_t *public_key,
                                           uint32_t tag);
 
 /**
+ * @brief Send anonymous encrypted data to a peer public key.
+ *
+ * Anonymous datagrams include the sender public key in the packet, allowing the
+ * recipient to decrypt with its local private key without a stored peer record.
+ *
+ * @param public_key Full peer public key.
+ * @param payload Payload bytes.
+ * @param payload_len Number of bytes in @p payload.
+ * @return 0 on success, or a negative errno-style value.
+ */
+int meshcore_node_anon_data_send(const uint8_t *public_key,
+                                 const uint8_t *payload,
+                                 size_t payload_len);
+
+/**
+ * @brief Send a binary service response for a received binary request.
+ *
+ * @param request Request event previously published by
+ *        meshcore_platform_event_binary_request().
+ * @param payload Response payload bytes.
+ * @param payload_len Number of bytes in @p payload.
+ * @return 0 on success, or a negative errno-style value.
+ */
+int meshcore_node_binary_response(
+    const meshcore_common_binary_request_event_t *request,
+    const uint8_t *payload, size_t payload_len);
+
+/**
  * @brief Send a zero-hop node-discover request.
  *
  * @param filter Bitmask of @c MESHCORE_NODE_DISCOVER_FILTER_* values.

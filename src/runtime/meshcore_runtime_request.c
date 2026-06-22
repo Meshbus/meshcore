@@ -37,6 +37,8 @@ static bool meshcore_runtime_request_needs_packet(uint8_t type) {
     case MESHCORE_RUNTIME_REQUEST_CHANNEL_DATA:
     case MESHCORE_RUNTIME_REQUEST_RAW_DATA:
     case MESHCORE_RUNTIME_REQUEST_CONTROL_DATA:
+    case MESHCORE_RUNTIME_REQUEST_NODE_BINARY_RESPONSE:
+    case MESHCORE_RUNTIME_REQUEST_NODE_ANON_DATA:
       return true;
     default:
       return false;
@@ -179,6 +181,42 @@ static int meshcore_runtime_request_validate_node_binary(
     return -EINVAL;
   }
 
+  return 0;
+}
+
+static int meshcore_runtime_request_validate_node_anon_data(
+    const uint8_t *public_key, const uint8_t *payload, size_t payload_len) {
+  if (public_key == NULL || payload == NULL || payload_len == 0U ||
+      payload_len > MESHCORE_MAX_ANON_DATA_PAYLOAD_LEN) {
+    return -EINVAL;
+  }
+
+  return 0;
+}
+
+static int meshcore_runtime_request_validate_node_binary_response(
+    const meshcore_common_binary_request_event_t *request,
+    const uint8_t *payload, size_t payload_len) {
+  uint8_t path_bytes = 0U;
+  uint8_t path_hash_size = 0U;
+
+  if (request == NULL || (payload == NULL && payload_len > 0U) ||
+      payload_len > MESHCORE_MAX_SERVICE_RESPONSE_PAYLOAD_LEN ||
+      request->tag == 0U ||
+      request->payload_len > MESHCORE_MAX_SERVICE_REQUEST_PAYLOAD_LEN) {
+    return -EINVAL;
+  }
+  if (request->route == MESHCORE_COMMON_MESSAGE_ROUTE_FLOOD) {
+    if (!meshcore_runtime_path_len_decode(request->path_len, &path_bytes,
+                                          &path_hash_size)) {
+      return -EINVAL;
+    }
+    if (path_bytes > sizeof(request->path)) {
+      return -EINVAL;
+    }
+  }
+
+  (void)path_hash_size;
   return 0;
 }
 
@@ -656,6 +694,118 @@ static void meshcore_runtime_request_execute_node_binary(
   }
 }
 
+static void meshcore_runtime_request_execute_node_anon_data(
+    const struct meshcore_runtime_request_node_anon_data *request) {
+  struct meshcore_identity recipient;
+  struct meshcore_packet *packet;
+  meshcore_common_peer_path_t peer_path;
+  uint8_t path_len = 0U;
+  uint8_t secret[MESHCORE_PUBLIC_KEY_SIZE];
+
+  if (request == NULL) {
+    return;
+  }
+  if (meshcore_runtime_sync_local_identity() != 0) {
+    meshcore_runtime_request_log_transient_failure(
+        MESHCORE_RUNTIME_REQUEST_NODE_ANON_DATA, -EAGAIN);
+    return;
+  }
+
+  meshcore_identity_init_from_pub_key(&recipient, request->public_key);
+  meshcore_local_identity_calc_shared_secret(
+      &meshcore_runtime_context_get()->mesh.self_id, secret,
+      request->public_key);
+  packet = meshcore_mesh_create_anon_datagram(
+      &meshcore_runtime_context_get()->mesh, PAYLOAD_TYPE_ANON_REQ,
+      &meshcore_runtime_context_get()->mesh.self_id, &recipient, secret,
+      request->payload, request->payload_len);
+  memset(secret, 0, sizeof(secret));
+  if (packet == NULL) {
+    meshcore_runtime_request_log_transient_failure(
+        MESHCORE_RUNTIME_REQUEST_NODE_ANON_DATA, -ENOBUFS);
+    return;
+  }
+
+  if (meshcore_runtime_peer_path_get(request->public_key, &peer_path,
+                                     &path_len)) {
+    meshcore_mesh_send_direct(&meshcore_runtime_context_get()->mesh, packet,
+                              peer_path.out_path, path_len, 0U);
+  } else {
+    meshcore_mesh_send_flood(&meshcore_runtime_context_get()->mesh, packet, 0U,
+                             meshcore_runtime_local_path_hash_size_get());
+  }
+}
+
+static void meshcore_runtime_request_execute_node_binary_response(
+    const struct meshcore_runtime_request_node_binary_response *request) {
+  struct meshcore_identity recipient;
+  struct meshcore_packet *packet;
+  meshcore_common_peer_path_t peer_path;
+  uint8_t path_len = 0U;
+  uint8_t secret[MESHCORE_PUBLIC_KEY_SIZE];
+  uint8_t data[sizeof(uint32_t) + MESHCORE_MAX_SERVICE_RESPONSE_PAYLOAD_LEN];
+  size_t data_len;
+
+  if (request == NULL) {
+    return;
+  }
+  if (meshcore_runtime_sync_local_identity() != 0) {
+    meshcore_runtime_request_log_transient_failure(
+        MESHCORE_RUNTIME_REQUEST_NODE_BINARY_RESPONSE, -EAGAIN);
+    return;
+  }
+
+  memcpy(data, &request->request.tag, sizeof(request->request.tag));
+  if (request->payload_len > 0U) {
+    memcpy(&data[sizeof(request->request.tag)], request->payload,
+           request->payload_len);
+  }
+  data_len = sizeof(request->request.tag) + request->payload_len;
+
+  meshcore_identity_init_from_pub_key(&recipient, request->request.public_key);
+  meshcore_local_identity_calc_shared_secret(
+      &meshcore_runtime_context_get()->mesh.self_id, secret,
+      request->request.public_key);
+
+  if (request->request.route == MESHCORE_COMMON_MESSAGE_ROUTE_FLOOD) {
+    packet = meshcore_mesh_create_path_return_by_identity(
+        &meshcore_runtime_context_get()->mesh, &recipient, secret,
+        request->request.path, request->request.path_len, PAYLOAD_TYPE_RESPONSE,
+        data, data_len);
+    memset(secret, 0, sizeof(secret));
+    if (packet == NULL) {
+      meshcore_runtime_request_log_transient_failure(
+          MESHCORE_RUNTIME_REQUEST_NODE_BINARY_RESPONSE, -ENOBUFS);
+      return;
+    }
+    meshcore_mesh_send_flood(&meshcore_runtime_context_get()->mesh, packet,
+                             MESHCORE_RUNTIME_SERVER_RESPONSE_DELAY_MS,
+                             meshcore_runtime_local_path_hash_size_get());
+    return;
+  }
+
+  packet = meshcore_mesh_create_datagram(&meshcore_runtime_context_get()->mesh,
+                                         PAYLOAD_TYPE_RESPONSE, &recipient,
+                                         secret, data, data_len);
+  memset(secret, 0, sizeof(secret));
+  if (packet == NULL) {
+    meshcore_runtime_request_log_transient_failure(
+        MESHCORE_RUNTIME_REQUEST_NODE_BINARY_RESPONSE, -ENOBUFS);
+    return;
+  }
+
+  if (meshcore_runtime_peer_path_get(request->request.public_key, &peer_path,
+                                     &path_len)) {
+    meshcore_mesh_send_direct(&meshcore_runtime_context_get()->mesh, packet,
+                              peer_path.out_path, path_len,
+                              MESHCORE_RUNTIME_SERVER_RESPONSE_DELAY_MS);
+  } else {
+    meshcore_mesh_send_flood(&meshcore_runtime_context_get()->mesh, packet,
+                             MESHCORE_RUNTIME_SERVER_RESPONSE_DELAY_MS,
+                             meshcore_runtime_local_path_hash_size_get());
+  }
+}
+
 static void meshcore_runtime_request_execute_node_discover(
     const struct meshcore_runtime_request_node_discover *request) {
   struct meshcore_packet *packet;
@@ -808,6 +958,10 @@ static void meshcore_runtime_request_execute(
     case MESHCORE_RUNTIME_REQUEST_NODE_BINARY:
       meshcore_runtime_request_execute_node_binary(&request->data.node_binary);
       break;
+    case MESHCORE_RUNTIME_REQUEST_NODE_ANON_DATA:
+      meshcore_runtime_request_execute_node_anon_data(
+          &request->data.node_anon_data);
+      break;
     case MESHCORE_RUNTIME_REQUEST_NODE_DISCOVER:
       meshcore_runtime_request_execute_node_discover(&request->data.node_discover);
       break;
@@ -819,6 +973,10 @@ static void meshcore_runtime_request_execute(
       break;
     case MESHCORE_RUNTIME_REQUEST_CONTROL_DATA:
       meshcore_runtime_request_execute_control_data(&request->data.control_data);
+      break;
+    case MESHCORE_RUNTIME_REQUEST_NODE_BINARY_RESPONSE:
+      meshcore_runtime_request_execute_node_binary_response(
+          &request->data.node_binary_response);
       break;
     default:
       break;
@@ -1113,6 +1271,57 @@ int meshcore_node_binary_request_with_tag(const uint8_t *public_key,
   data.node_binary.tag = tag;
   return meshcore_runtime_request_add(MESHCORE_RUNTIME_REQUEST_NODE_BINARY,
                                       &data);
+}
+
+int meshcore_node_anon_data_send(const uint8_t *public_key,
+                                 const uint8_t *payload,
+                                 size_t payload_len) {
+  int rc = meshcore_runtime_require_initialized();
+  union meshcore_runtime_request_data data;
+
+  if (rc != 0) {
+    return rc;
+  }
+
+  rc = meshcore_runtime_request_validate_node_anon_data(public_key, payload,
+                                                        payload_len);
+  if (rc != 0) {
+    return rc;
+  }
+
+  memset(&data, 0, sizeof(data));
+  memcpy(data.node_anon_data.public_key, public_key,
+         sizeof(data.node_anon_data.public_key));
+  memcpy(data.node_anon_data.payload, payload, payload_len);
+  data.node_anon_data.payload_len = payload_len;
+  return meshcore_runtime_request_add(MESHCORE_RUNTIME_REQUEST_NODE_ANON_DATA,
+                                      &data);
+}
+
+int meshcore_node_binary_response(
+    const meshcore_common_binary_request_event_t *request,
+    const uint8_t *payload, size_t payload_len) {
+  int rc = meshcore_runtime_require_initialized();
+  union meshcore_runtime_request_data data;
+
+  if (rc != 0) {
+    return rc;
+  }
+
+  rc = meshcore_runtime_request_validate_node_binary_response(
+      request, payload, payload_len);
+  if (rc != 0) {
+    return rc;
+  }
+
+  memset(&data, 0, sizeof(data));
+  data.node_binary_response.request = *request;
+  if (payload_len > 0U) {
+    memcpy(data.node_binary_response.payload, payload, payload_len);
+  }
+  data.node_binary_response.payload_len = payload_len;
+  return meshcore_runtime_request_add(
+      MESHCORE_RUNTIME_REQUEST_NODE_BINARY_RESPONSE, &data);
 }
 
 int meshcore_node_discover_request(uint8_t filter, bool prefix_only,

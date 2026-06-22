@@ -323,19 +323,31 @@ static void meshcore_runtime_on_peer_data_recv_internal(
       meshcore_runtime_handle_text_follow_up(sender, secret, packet, flags, data,
                                              text_off + text_len);
     }
-  } else if (meshcore_runtime_local_role_is(MESHCORE_COMMON_NODE_ROLE_CHAT) &&
-             type == PAYLOAD_TYPE_REQ && len > 5U) {
-    uint8_t req_type = data[4];
-    uint8_t permission_mask = meshcore_runtime_telemetry_wire_decode(data[5]);
-    bool wants_snr_path = meshcore_packet_has_snr_flag(packet);
+  } else if (type == PAYLOAD_TYPE_REQ && len > sizeof(uint32_t)) {
+    bool handled_request = false;
 
-    if (req_type == MESHCORE_RUNTIME_REQ_TYPE_DISCOVER_PATH_SNR ||
-        (req_type == MESHCORE_RUNTIME_REQ_TYPE_GET_TELEMETRY_DATA &&
-         wants_snr_path)) {
-      meshcore_runtime_handle_discover_path_request(sender, secret, packet);
-    } else if (req_type == MESHCORE_RUNTIME_REQ_TYPE_GET_TELEMETRY_DATA) {
-      meshcore_runtime_handle_telemetry_request(sender, secret, packet, timestamp,
-                                                permission_mask);
+    if (meshcore_runtime_local_role_is(MESHCORE_COMMON_NODE_ROLE_CHAT) &&
+        len > 5U) {
+      uint8_t req_type = data[4];
+      uint8_t permission_mask = meshcore_runtime_telemetry_wire_decode(data[5]);
+      bool wants_snr_path = meshcore_packet_has_snr_flag(packet);
+
+      if (req_type == MESHCORE_RUNTIME_REQ_TYPE_DISCOVER_PATH_SNR ||
+          (req_type == MESHCORE_RUNTIME_REQ_TYPE_GET_TELEMETRY_DATA &&
+           wants_snr_path)) {
+        meshcore_runtime_handle_discover_path_request(sender, secret, packet);
+        handled_request = true;
+      } else if (req_type == MESHCORE_RUNTIME_REQ_TYPE_GET_TELEMETRY_DATA) {
+        meshcore_runtime_handle_telemetry_request(sender, secret, packet, timestamp,
+                                                  permission_mask);
+        handled_request = true;
+      }
+    }
+
+    if (!handled_request) {
+      meshcore_runtime_binary_request_publish(sender, packet, timestamp,
+                                              &data[sizeof(uint32_t)],
+                                              len - sizeof(uint32_t));
     }
   } else if (type == PAYLOAD_TYPE_RESPONSE && len >= sizeof(uint32_t)) {
     uint32_t response_timestamp = meshcore_runtime_timestamp_now_seconds();

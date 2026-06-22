@@ -15,7 +15,7 @@ int main(void)
   meshcore_common_identity_view_t identity = {0};
   meshcore_common_channel_view_t channel = {0};
 
-  NATIVE_TEST_ASSERT_EQ(23U, MESHCORE_ABI_VERSION);
+  NATIVE_TEST_ASSERT_EQ(25U, MESHCORE_ABI_VERSION);
   NATIVE_TEST_ASSERT_EQ(32U, MESHCORE_PUBLIC_KEY_SIZE);
   NATIVE_TEST_ASSERT_EQ(64U, MESHCORE_MAX_PATH_LEN);
   NATIVE_TEST_ASSERT_EQ(0U, packet.payload_type);

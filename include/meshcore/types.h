@@ -35,7 +35,7 @@ extern "C" {
  */
 
 /** Public ABI version for breaking interface revisions. */
-#define MESHCORE_ABI_VERSION 23U
+#define MESHCORE_ABI_VERSION 25U
 
 /** Size of an Ed25519 public key in bytes. */
 #define MESHCORE_PUBLIC_KEY_SIZE 32U
@@ -47,6 +47,8 @@ extern "C" {
 #define MESHCORE_MAX_SERVICE_REQUEST_PAYLOAD_LEN 168U
 /** Maximum service response payload length surfaced to platform events. */
 #define MESHCORE_MAX_SERVICE_RESPONSE_PAYLOAD_LEN 180U
+/** Maximum anonymous datagram payload length accepted by the public API. */
+#define MESHCORE_MAX_ANON_DATA_PAYLOAD_LEN 136U
 /** Maximum group/channel binary payload length. */
 #define MESHCORE_MAX_CHANNEL_DATA_PAYLOAD_LEN 165U
 /** Maximum raw custom packet payload length. */
@@ -425,6 +427,32 @@ typedef struct meshcore_common_control_data_event {
   /** Receive SNR in quarter-dB units. */
   int8_t rx_snr_q4;
 } meshcore_common_control_data_event_t;
+
+/**
+ * @brief Binary service request event published by the runtime.
+ */
+typedef struct meshcore_common_binary_request_event {
+  /** Packet route classification for the incoming request. */
+  meshcore_common_message_route_t route;
+  /** Requester public-key prefix. */
+  uint8_t key_prefix[MESHCORE_NODE_KEY_PREFIX_BYTES];
+  /** Request correlation tag. */
+  uint32_t tag;
+  /** Requester full public key. */
+  uint8_t public_key[MESHCORE_PUBLIC_KEY_SIZE];
+  /** Encoded source path length field from the request packet. */
+  uint8_t path_len;
+  /** Encoded source path bytes from the request packet. */
+  uint8_t path[MESHCORE_MAX_PATH_LEN];
+  /** Number of valid bytes in @ref payload. */
+  uint8_t payload_len;
+  /** Binary request payload bytes, excluding the MeshCore correlation tag. */
+  uint8_t payload[MESHCORE_MAX_SERVICE_REQUEST_PAYLOAD_LEN];
+  /** True when @ref rx_snr_q4 is valid. */
+  bool has_rx_snr;
+  /** Receive SNR in quarter-dB units. */
+  int8_t rx_snr_q4;
+} meshcore_common_binary_request_event_t;
 
 /**
  * @brief Node-discover response event published by the runtime.

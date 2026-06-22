@@ -309,6 +309,11 @@ int meshcore_platform_bridge_telemetry_handler(const uint8_t *key_prefix,
                                            payload_len);
 }
 
+int meshcore_platform_bridge_binary_request_handler(
+    const meshcore_common_binary_request_event_t *event) {
+  return meshcore_platform_event_binary_request(event);
+}
+
 int meshcore_platform_bridge_binary_response_handler(const uint8_t *key_prefix,
                                                   uint32_t timestamp,
                                                   uint32_t tag,

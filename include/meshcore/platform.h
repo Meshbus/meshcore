@@ -770,6 +770,15 @@ int meshcore_platform_event_telemetry(const uint8_t *key_prefix,
                                       size_t payload_len);
 
 /**
+ * @brief Publish a received binary service request.
+ *
+ * @param event Binary request event.
+ * @return 0 on success, or a negative errno-style value.
+ */
+int meshcore_platform_event_binary_request(
+    const meshcore_common_binary_request_event_t *event);
+
+/**
  * @brief Publish a binary service response.
  *
  * @param key_prefix Peer public-key prefix.
