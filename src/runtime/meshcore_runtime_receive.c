@@ -13,6 +13,13 @@ static uint8_t meshcore_runtime_telemetry_wire_decode(uint8_t wire_mask) {
   return (uint8_t)(~wire_mask) & MESHCORE_RUNTIME_TELEM_PERM_SUPPORTED;
 }
 
+static bool meshcore_runtime_local_role_answers_telemetry(void) {
+  return meshcore_runtime_local_role_is(MESHCORE_COMMON_NODE_ROLE_CHAT) ||
+         meshcore_runtime_local_role_is(MESHCORE_COMMON_NODE_ROLE_REPEATER) ||
+         meshcore_runtime_local_role_is(MESHCORE_COMMON_NODE_ROLE_ROOM) ||
+         meshcore_runtime_local_role_is(MESHCORE_COMMON_NODE_ROLE_SENSOR);
+}
+
 static void meshcore_runtime_peer_seen_update(const uint8_t *public_key,
                                               bool has_snr, int8_t snr_q4) {
   if (public_key == NULL) {
@@ -326,18 +333,19 @@ static void meshcore_runtime_on_peer_data_recv_internal(
   } else if (type == PAYLOAD_TYPE_REQ && len > sizeof(uint32_t)) {
     bool handled_request = false;
 
-    if (meshcore_runtime_local_role_is(MESHCORE_COMMON_NODE_ROLE_CHAT) &&
-        len > 5U) {
+    if (len > 5U) {
       uint8_t req_type = data[4];
       uint8_t permission_mask = meshcore_runtime_telemetry_wire_decode(data[5]);
       bool wants_snr_path = meshcore_packet_has_snr_flag(packet);
 
-      if (req_type == MESHCORE_RUNTIME_REQ_TYPE_DISCOVER_PATH_SNR ||
-          (req_type == MESHCORE_RUNTIME_REQ_TYPE_GET_TELEMETRY_DATA &&
-           wants_snr_path)) {
+      if (meshcore_runtime_local_role_is(MESHCORE_COMMON_NODE_ROLE_CHAT) &&
+          (req_type == MESHCORE_RUNTIME_REQ_TYPE_DISCOVER_PATH_SNR ||
+           (req_type == MESHCORE_RUNTIME_REQ_TYPE_GET_TELEMETRY_DATA &&
+            wants_snr_path))) {
         meshcore_runtime_handle_discover_path_request(sender, secret, packet);
         handled_request = true;
-      } else if (req_type == MESHCORE_RUNTIME_REQ_TYPE_GET_TELEMETRY_DATA) {
+      } else if (req_type == MESHCORE_RUNTIME_REQ_TYPE_GET_TELEMETRY_DATA &&
+                 meshcore_runtime_local_role_answers_telemetry()) {
         meshcore_runtime_handle_telemetry_request(sender, secret, packet, timestamp,
                                                   permission_mask);
         handled_request = true;
