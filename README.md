@@ -75,13 +75,14 @@ library is added as a subproject.
 Native tests are the independent library test path. They use CMake + CTest and
 small host fakes instead of Zephyr `ztest`, west, or Twister.
 
-Zephyr/Twister tests remain useful as host integration coverage, but they are
-not the only way to validate the library:
+Host integration tests remain useful for platform-specific adapters, but they
+are not the only way to validate the library:
 
 - native CTest: platform-neutral ABI, core, support, runtime, and fake-host
   behavior;
 - upstream sync tools: source manifest and reference evidence drift checks;
-- Zephyr/Twister: FoBE Meshbus adapter and board-facing integration.
+- downstream host tests: adapter and board-facing integration outside this
+  repository.
 
 ## Source Manifest
 
@@ -92,13 +93,13 @@ source-list drift.
 ## Further Documentation
 
 - `docs/porting.md`: platform hook and runtime API integration guide.
-- `docs/testing.md`: independent tests, sync checks, and downstream FoBE
+- `docs/testing.md`: independent tests, sync checks, and downstream host
   integration coverage.
 
 ## License
 
-FoBE-owned MeshCore C library code is licensed under the MIT License. See
-`LICENSE`.
+The MeshCore C library code in this repository is licensed under the MIT
+License. See `LICENSE`.
 
 This library implements MeshCore protocol and runtime behavior using upstream
 MeshCore evidence. Upstream MeshCore is licensed under the MIT License; retained

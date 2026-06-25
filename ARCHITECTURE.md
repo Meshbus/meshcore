@@ -43,8 +43,8 @@ ownership groups:
 ## Non-Goals
 
 - Do not port Arduino `loop()` as the C runtime model.
-- Do not make Zephyr, Meshbus, Bluetooth, storage, shell, board, or sample code
-  part of the generic library.
+- Do not make concrete host services, Bluetooth, storage, shell, board, or
+  sample code part of the generic library.
 - Do not restore the old per-class porting tracker as the primary architecture
   document.
 
@@ -96,9 +96,10 @@ only when the target surface and migration validation are clear.
 ## Source Manifest
 
 `cmake/meshcore_sources.cmake` is the canonical source manifest
-for library implementation files. Full-runtime consumers such as Meshbus and
-runtime oracle tests must use `MESHCORE_RUNTIME_LIBRARY_SOURCES` instead of
-maintaining private complete source lists.
+for library implementation files. Full-runtime consumers such as downstream
+host adapters and runtime oracle tests must use
+`MESHCORE_RUNTIME_LIBRARY_SOURCES` instead of maintaining private complete
+source lists.
 
 Focused protocol tests may use smaller manifest groups, such as
 `MESHCORE_PROTOCOL_PACKET_SOURCES` or `MESHCORE_SUPPORT_ADVERT_DATA_SOURCES`,
@@ -202,8 +203,8 @@ Runtime packet ownership uses fixed arenas instead of heap allocation.
 `meshcore_packet_queue_manager_prepare()` binds each queue manager to storage
 embedded in the manager object and rejects pool sizes larger than
 `MESHCORE_PACKET_QUEUE_MANAGER_MAX_POOL_SIZE`. Full runtime builds may size the
-arena with `MESHCORE_RUNTIME_PACKET_POOL_SIZE`; Meshbus passes its packet-pool
-Kconfig value into both macros.
+arena with `MESHCORE_RUNTIME_PACKET_POOL_SIZE`; downstream hosts that expose a
+local packet-pool setting should pass that value into both macros.
 
 White-box runtime inspection symbols are test-only. Test targets that need
 `meshcore_test_runtime_*` hooks compile the runtime sources with
@@ -279,11 +280,11 @@ The current public include policy is:
 - flat compatibility include shims are retired; callers must include the
   canonical nested header for the role they need.
 
-The Zephyr Meshbus service is an explicit host adapter. It implements the
-`meshcore_platform_*` hooks in `subsys/meshbus/services/meshcore` and keeps
-ZBus channels, settings, companion framing, Meshbus public APIs, and board
-policy outside this repository. Meshbus hook implementations call
-Meshbus-private `meshbus_meshcore_*` helpers declared by `meshcore_host.h`.
+Downstream services are explicit host adapters. They implement the
+`meshcore_platform_*` hooks outside this repository and keep RTOS messaging,
+settings, companion framing, public product APIs, and board policy outside the
+generic library. Private adapter helpers may wrap product-specific state, but
+they must not become generic MeshCore ABI.
 
 ### `meshcore/runtime.h`
 
@@ -294,7 +295,7 @@ The callable runtime ABI lives in `meshcore/runtime.h`. It should contain:
 - typed request entrypoints
 - callback or deadline contract needed by host scheduling
 
-It must not expose Zephyr, Meshbus, Arduino, storage, Bluetooth, board, or test
+It must not expose concrete host, Arduino, storage, Bluetooth, board, or test
 types.
 
 ### `meshcore/platform.h`
@@ -319,8 +320,8 @@ Platform hook categories include:
 - message, ACK, advert, path, trace, telemetry, and error publication
 
 Hook functions should stay small platform primitives, policy lookups, or event
-publication bridges. They may adapt Meshbus or another host internally, but
-those types must not appear in the generic header. Contact and Channel business
+publication bridges. They may adapt a downstream host internally, but those
+types must not appear in the generic header. Contact and Channel business
 objects remain caller-owned and must not become MeshCore library data
 projections.
 
@@ -374,18 +375,19 @@ If an upstream behavior needs host data or platform capability, classify it as:
 
 ## P2 Runtime Sync Ledger
 
-The P1 runtime capability gaps are the protocol-level surfaces required for
-current Meshbus interop: generic binary request/response, channel/group binary
-datagram, and raw/control data. Remaining P2 work is tracked by boundary, not
-by copying more upstream application objects into the generic library.
+The P1 runtime capability gaps are protocol-level surfaces required by
+host-facing interoperability: generic binary request/response, channel/group
+binary datagram, and raw/control data. Remaining P2 work is tracked by
+boundary, not by copying more upstream application objects into the generic
+library.
 
 | Layer | Upstream evidence | Target C surface | Expected behavior | Migration risk | Validation need | Boundary notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | Layer 2 runtime | `.reference/meshcore/src/helpers/BaseChatMesh.cpp`, `.reference/meshcore/examples/companion_radio/MyMesh.cpp` | `meshcore_node_binary_request*`, PAL binary response event | Binary request sends upstream-compatible `REQ`; matching `RESPONSE` with the same tag publishes opaque response bytes. | Wrong tag/peer handling can break request correlation or clear pending state too early. | Runtime request tests for wrong-tag then matching-tag response; oracle send-side request parity. | Keep response payload opaque. Higher-level RPC schemas belong to the caller. |
 | Layer 2 runtime | `.reference/meshcore/src/helpers/BaseChatMesh.cpp`, `.reference/meshcore/examples/companion_radio/MyMesh.cpp` | `meshcore_channel_data_send`, PAL channel data event | `GRP_DATA` encodes `data_type`, `data_len`, and payload; unknown path floods, known path sends direct. | Treating this as text message or channel-store API would mix business models into protocol runtime. | Oracle send-side parity for flood/direct; runtime receive tests for malformed and valid datagrams. | Channel secret/hash is protocol input. Channel business objects remain caller-owned. |
-| Host integration | `.reference/meshcore/examples/companion_radio/MyMesh.cpp` | `include/zephyr/meshbus/meshcore.h`, Companion command/push adapters | Companion low-level command frames map to Meshbus request APIs and response push frames. | Frame-shape drift breaks phone/app compatibility even when this library's wire behavior is correct. | Meshbus companion protocol tests for commands, errors, and push frames. | This stays outside this repository; it is a Meshbus service adapter. |
-| Meshbus service | Upstream application behavior only when it uses MeshCore wire features | Message or caller-owned service APIs, not generic MeshCore ABI | Message pagination, file chunks, plugin RPC, or app protocols choose binary request or channel datagram as transport. | Putting pagination in this library would make host storage and message models part of the protocol ABI. | Service-level tests once a concrete pagination contract is defined. | This library provides opaque transport; Meshbus or the app owns schemas, storage, retries, and UX. |
-| Release hardening | Current C ABI and host embedding requirements | Future ABI milestone | Public multi-instance contexts and host-native packaging should be decided before a standalone library ABI release. | Early ABI publication would make global-state decisions hard to change. | Boundary tests plus host-native build/sanitizer coverage in a separate release-hardening phase. | Not a runtime sync blocker for current Meshbus integration. |
+| Host integration | `.reference/meshcore/examples/companion_radio/MyMesh.cpp` | Host command/push adapters outside this repository | Companion low-level command frames map to host request APIs and response push frames. | Frame-shape drift breaks phone/app compatibility even when this library's wire behavior is correct. | Downstream companion protocol tests for commands, errors, and push frames. | This stays outside this repository; it is a host service adapter. |
+| Host service | Upstream application behavior only when it uses MeshCore wire features | Message or caller-owned service APIs, not generic MeshCore ABI | Message pagination, file chunks, plugin RPC, or app protocols choose binary request or channel datagram as transport. | Putting pagination in this library would make host storage and message models part of the protocol ABI. | Service-level tests once a concrete pagination contract is defined. | This library provides opaque transport; the host application owns schemas, storage, retries, and UX. |
+| Release hardening | Current C ABI and host embedding requirements | Future ABI milestone | Public multi-instance contexts and host-native packaging should be decided before a standalone library ABI release. | Early ABI publication would make global-state decisions hard to change. | Boundary tests plus host-native build/sanitizer coverage in a separate release-hardening phase. | Not a runtime sync blocker for current downstream integration. |
 
 ## Migration Guidance
 

@@ -64,5 +64,5 @@ what those hooks do:
 | Dispatcher and mesh policy tuning | `meshcore_platform_dispatcher_*` and `meshcore_platform_mesh_*` |
 | Telemetry response handling | `meshcore_platform_telemetry_*` |
 
-Host business objects such as Meshbus messages, contacts, channels, settings,
+Host business objects such as application messages, contacts, channels, settings,
 transports, storage, UI, and board state stay outside this library.

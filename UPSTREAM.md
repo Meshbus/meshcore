@@ -133,8 +133,8 @@ The sync report groups drift into these categories:
   behavior are missing;
 - `source manifest`: C implementation files under `src` are
   missing from, duplicated in, or stale in the canonical source manifest;
-- `generic include boundary`: Zephyr, Meshbus, Arduino, or host-specific names
-  leaked into generic `include/` or `src/` C files;
+- `generic include boundary`: platform or host-specific names leaked into
+  generic `include/` or `src/` C files;
 - `public header ownership`: public headers include private implementation
   headers or non-public dependencies;
 - `stale source roots`: build/tool files still reference retired

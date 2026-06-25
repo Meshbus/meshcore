@@ -1,6 +1,6 @@
 # MeshCore Testing Guide
 
-`meshcore` has an independent native test path and downstream FoBE integration
+`meshcore` has an independent native test path and downstream host integration
 coverage. Native tests do not require Zephyr, west, or Twister.
 
 ## Native CTest
@@ -43,16 +43,17 @@ Use `python3 tools/upstream_lock_check.py --repo-root .` only after preparing
 the ignored `.reference/meshcore` checkout described in `UPSTREAM.md`; that
 standalone lock check intentionally fails when the reference tree is absent.
 
-## FoBE Downstream Coverage
+## Downstream Coverage
 
-FoBE keeps Zephyr and Meshbus integration tests outside the generic library.
-Use them after changing public headers, runtime behavior, or source manifest
-integration:
+Keep platform, board, transport, and product-service integration tests outside
+the generic library. Run the relevant downstream host-adapter test suites after
+changing public headers, runtime behavior, or source manifest integration.
 
 ```sh
-west twister -T fobe/tests/lib/meshcore -p qemu_x86
-west twister -T fobe/tests/subsys/meshbus/meshcore -p qemu_cortex_m3
-west build -d build.idea_mesh_tracker_c2 \
-  -b idea_mesh_tracker_c2/nrf54l15/cpuapp \
-  -s fobe/samples/subsys/meshbus/combine
+# Example shape; replace paths and platforms with the host repository's tests.
+west twister -T path/to/host/tests/lib/meshcore -p qemu_x86
+west twister -T path/to/host/tests/services/meshcore -p qemu_cortex_m3
+west build -d build.host-meshcore-sample \
+  -b <board> \
+  -s path/to/host/samples/meshcore
 ```

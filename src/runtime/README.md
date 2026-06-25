@@ -8,8 +8,8 @@ own scheduling, storage, transport, and platform integration through the direct
 `meshcore_platform_*` hooks declared by `meshcore/platform.h`.
 
 The runtime must stay a deterministic event pump. Do not introduce hidden
-threads, Zephyr workqueues, Meshbus state, Arduino `loop()` scheduling, or
-host-specific storage here.
+threads, RTOS workqueues, product service state, Arduino `loop()` scheduling,
+or host-specific storage here.
 
 The public ABI is currently a singleton facade. Internal state is accessed
 through the private current-context helper so a future context API can be added

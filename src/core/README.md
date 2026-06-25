@@ -3,7 +3,7 @@
 This directory contains the protocol-core MeshCore implementation.
 
 The layer is traceable to top-level `.reference/meshcore/src` protocol
-classes. It must stay platform-neutral and must not include Zephyr, Meshbus,
+classes. It must stay platform-neutral and must not include concrete host,
 Arduino, board, storage, transport, Bluetooth, shell, or UI headers.
 
 Module ownership follows `ARCHITECTURE.md`:

@@ -65,7 +65,7 @@ crypto, identity, mesh, or dispatcher rules that belong in `src/core` or
 `src/support`.
 
 Peer direct/flood decisions follow upstream MeshCore contact semantics, not raw
-byte length alone. In FoBE peer records, `out_path.size == 0` is direct
+byte length alone. In host peer records, `out_path.size == 0` is direct
 zero-hop only when `is_neighbor == true`; `out_path.size == 0` with
 `is_neighbor == false` means the path is unknown and peer sends must fall back
 to flood. Companion contact `out_path_len == 0xff` is the unknown/flood
@@ -78,7 +78,7 @@ in `include/meshcore/platform.h`; the runtime dispatch bridge lives under
 `src/platform`.
 
 The host implements platform primitives and policy hooks, then calls the public
-C API. Zephyr, Meshbus, board, storage, Bluetooth, UI, and transport code must
+C API. Product services, board, storage, Bluetooth, UI, and transport code must
 remain outside the generic library.
 
 ## Target Tree
@@ -191,7 +191,7 @@ When changing architecture or code:
 3. Define the target C surface before moving or rewriting code.
 4. Preserve working behavior, but do not preserve old file structure by
    default.
-5. Keep Zephyr, Meshbus, storage, transport, and board dependencies outside
+5. Keep product-service, storage, transport, and board dependencies outside
    generic code.
 6. Do not add a public ABI just because old code exposed a helper.
 7. Do not remove an observable behavior unless the upstream evidence says it is
