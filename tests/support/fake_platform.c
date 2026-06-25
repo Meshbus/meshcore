@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
 /*
  * Copyright (c) 2026 FoBE Studio
  */
@@ -21,6 +21,7 @@ static uint32_t s_now_s = 1U;
 static unsigned int s_radio_begin_count;
 static unsigned int s_message_count;
 static meshcore_common_message_t s_last_message;
+static bool s_identity_get_fail;
 
 void meshcore_native_platform_reset(void)
 {
@@ -31,7 +32,13 @@ void meshcore_native_platform_reset(void)
   s_now_s = 1U;
   s_radio_begin_count = 0U;
   s_message_count = 0U;
+  s_identity_get_fail = false;
   memset(&s_last_message, 0, sizeof(s_last_message));
+}
+
+void meshcore_native_platform_identity_get_fail_set(bool fail)
+{
+  s_identity_get_fail = fail;
 }
 
 unsigned int meshcore_native_platform_timer_arm_count_get(void)
@@ -215,6 +222,9 @@ int meshcore_platform_node_identity_get(meshcore_common_node_identity_t *out)
 {
   size_t i;
 
+  if (s_identity_get_fail) {
+    return -EIO;
+  }
   if (out == NULL) {
     return -EINVAL;
   }

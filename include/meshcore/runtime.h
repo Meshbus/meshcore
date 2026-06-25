@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2026 FoBE Studio
  *
- * SPDX-License-Identifier: Apache-2.0
+ * SPDX-License-Identifier: MIT
  */
 
 /**
@@ -249,7 +249,9 @@ int meshcore_node_anon_data_send(const uint8_t *public_key,
  * @param request Request event previously published by
  *        meshcore_platform_event_binary_request().
  * @param payload Response payload bytes.
- * @param payload_len Number of bytes in @p payload.
+ * @param payload_len Number of bytes in @p payload. Flood-routed replies also
+ *        need to fit the request return path, so the accepted payload may be
+ *        smaller than MESHCORE_MAX_SERVICE_RESPONSE_PAYLOAD_LEN.
  * @return 0 on success, or a negative errno-style value.
  */
 int meshcore_node_binary_response(

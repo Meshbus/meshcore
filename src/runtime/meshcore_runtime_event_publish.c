@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
 /*
  * Copyright (c) 2026 FoBE Studio
  */
@@ -50,7 +50,7 @@ void meshcore_runtime_text_message_publish(
   message.sender_timestamp = sender_timestamp;
   message.has_rx_snr = packet != NULL;
   if (packet != NULL) {
-    message.rx_snr = (float)packet->snr_q4;
+    message.rx_snr = ((float)packet->snr_q4) / 4.0f;
   }
 
   (void)meshcore_platform_bridge_message_handler(&message);
@@ -123,7 +123,7 @@ void meshcore_runtime_channel_text_publish(
   message.sender_timestamp = sender_timestamp;
   message.has_rx_snr = packet != NULL;
   if (packet != NULL) {
-    message.rx_snr = (float)packet->snr_q4;
+    message.rx_snr = ((float)packet->snr_q4) / 4.0f;
   }
 
   (void)meshcore_platform_bridge_message_handler(&message);

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
 /*
  * Copyright (c) 2026 FoBE Studio
  */
@@ -70,19 +70,21 @@ static bool meshcore_runtime_build_forward_path_snrs(
 }
 
 static void meshcore_runtime_send_ack_direct(
-    const meshcore_common_peer_identity_t *peer, uint32_t ack_hash) {
+    const meshcore_common_peer_identity_t *peer, const uint8_t *ack,
+    size_t ack_len) {
   meshcore_common_peer_path_t peer_path;
   uint8_t path_len = 0U;
   uint8_t extra_acks;
   struct meshcore_packet *packet;
   uint32_t delay_ms = MESHCORE_RUNTIME_TXT_ACK_DELAY_MS;
 
-  if (peer == NULL) {
+  if (peer == NULL || ack == NULL || ack_len == 0U) {
     return;
   }
 
   if (!meshcore_runtime_peer_path_get(peer->public_key, &peer_path, &path_len)) {
-    packet = meshcore_mesh_create_ack(&meshcore_runtime_context_get()->mesh, ack_hash);
+    packet = meshcore_mesh_create_ack_data(&meshcore_runtime_context_get()->mesh,
+                                           ack, ack_len);
     if (packet != NULL) {
       meshcore_mesh_send_flood(&meshcore_runtime_context_get()->mesh, packet, delay_ms,
                                meshcore_runtime_local_path_hash_size_get());
@@ -92,7 +94,8 @@ static void meshcore_runtime_send_ack_direct(
 
   extra_acks = meshcore_platform_bridge_mesh_extra_ack_transmit_count_get();
   if (extra_acks > 0U) {
-    packet = meshcore_mesh_create_multi_ack(&meshcore_runtime_context_get()->mesh, ack_hash, 1U);
+    packet = meshcore_mesh_create_multi_ack_data(
+        &meshcore_runtime_context_get()->mesh, ack, ack_len, 1U);
     if (packet != NULL) {
       meshcore_mesh_send_direct(&meshcore_runtime_context_get()->mesh, packet, peer_path.out_path,
                                 path_len, delay_ms);
@@ -100,7 +103,8 @@ static void meshcore_runtime_send_ack_direct(
     }
   }
 
-  packet = meshcore_mesh_create_ack(&meshcore_runtime_context_get()->mesh, ack_hash);
+  packet = meshcore_mesh_create_ack_data(&meshcore_runtime_context_get()->mesh,
+                                         ack, ack_len);
   if (packet != NULL) {
     meshcore_mesh_send_direct(&meshcore_runtime_context_get()->mesh, packet, peer_path.out_path,
                               path_len, delay_ms);
@@ -109,11 +113,12 @@ static void meshcore_runtime_send_ack_direct(
 
 static void meshcore_runtime_send_ack_or_path_return(
     const meshcore_common_peer_identity_t *peer, const uint8_t *secret,
-    const struct meshcore_packet *packet, uint32_t ack_hash) {
+    const struct meshcore_packet *packet, const uint8_t *ack, size_t ack_len) {
   struct meshcore_identity recipient;
   struct meshcore_packet *reply;
 
-  if (peer == NULL || secret == NULL || packet == NULL) {
+  if (peer == NULL || secret == NULL || packet == NULL || ack == NULL ||
+      ack_len == 0U) {
     return;
   }
 
@@ -121,8 +126,7 @@ static void meshcore_runtime_send_ack_or_path_return(
     meshcore_identity_init_from_pub_key(&recipient, peer->public_key);
     reply = meshcore_mesh_create_path_return_by_identity(
         &meshcore_runtime_context_get()->mesh, &recipient, secret, packet->path,
-        (uint8_t)packet->path_len, PAYLOAD_TYPE_ACK, (const uint8_t *)&ack_hash,
-        sizeof(ack_hash));
+        (uint8_t)packet->path_len, PAYLOAD_TYPE_ACK, ack, ack_len);
     if (reply != NULL) {
       meshcore_mesh_send_flood(&meshcore_runtime_context_get()->mesh, reply,
                                MESHCORE_RUNTIME_TXT_ACK_DELAY_MS,
@@ -131,14 +135,15 @@ static void meshcore_runtime_send_ack_or_path_return(
     return;
   }
 
-  meshcore_runtime_send_ack_direct(peer, ack_hash);
+  meshcore_runtime_send_ack_direct(peer, ack, ack_len);
 }
 
 static void meshcore_runtime_handle_text_follow_up(
     const meshcore_common_peer_identity_t *peer, const uint8_t *secret,
     const struct meshcore_packet *packet, uint8_t flags, const uint8_t *data,
-    size_t text_end) {
-  uint32_t ack_hash = 0U;
+    size_t text_end, size_t data_len) {
+  uint8_t ack_hash[6] = {0};
+  size_t ack_len = sizeof(uint32_t);
 
   if (peer == NULL || secret == NULL || packet == NULL || data == NULL ||
       text_end <= sizeof(uint32_t)) {
@@ -147,18 +152,22 @@ static void meshcore_runtime_handle_text_follow_up(
 
   if (flags == MESHCORE_RUNTIME_TXT_TYPE_PLAIN) {
     meshcore_utils_sha256_two_fragments(
-        (uint8_t *)&ack_hash, sizeof(ack_hash), data, (int)text_end,
+        ack_hash, sizeof(uint32_t), data, (int)text_end,
         peer->public_key, (int)sizeof(peer->public_key));
+    ack_hash[4] = text_end + 1U < data_len ? data[text_end + 1U] : 0U;
+    meshcore_platform_bridge_rng_random(&ack_hash[5], 1U);
+    ack_len = sizeof(ack_hash);
   } else if (flags == MESHCORE_RUNTIME_TXT_TYPE_SIGNED_PLAIN) {
     meshcore_utils_sha256_two_fragments(
-        (uint8_t *)&ack_hash, sizeof(ack_hash), data, (int)text_end,
+        ack_hash, sizeof(uint32_t), data, (int)text_end,
         meshcore_runtime_context_get()->mesh.self_id.identity.pub_key,
         (int)sizeof(meshcore_runtime_context_get()->mesh.self_id.identity.pub_key));
   } else {
     return;
   }
 
-  meshcore_runtime_send_ack_or_path_return(peer, secret, packet, ack_hash);
+  meshcore_runtime_send_ack_or_path_return(peer, secret, packet, ack_hash,
+                                           ack_len);
 }
 
 static void meshcore_runtime_handle_discover_path_request(
@@ -251,6 +260,9 @@ static void meshcore_runtime_handle_telemetry_request(
                                                    &telemetry) != 0) {
     return;
   }
+  if (telemetry.payload_len > sizeof(telemetry.payload)) {
+    return;
+  }
 
   memcpy(response, &tag, sizeof(tag));
   memcpy(&response[sizeof(tag)], telemetry.payload, telemetry.payload_len);
@@ -328,7 +340,7 @@ static void meshcore_runtime_on_peer_data_recv_internal(
                                               &data[text_off], text_len);
       }
       meshcore_runtime_handle_text_follow_up(sender, secret, packet, flags, data,
-                                             text_off + text_len);
+                                             text_off + text_len, len);
     }
   } else if (type == PAYLOAD_TYPE_REQ && len > sizeof(uint32_t)) {
     bool handled_request = false;

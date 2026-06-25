@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
 /*
  * Copyright (c) 2026 FoBE Studio
  */
@@ -177,7 +177,8 @@ static int meshcore_runtime_request_validate_control_data(
 static int meshcore_runtime_request_validate_node_binary(
     const uint8_t *public_key, const uint8_t *payload, size_t payload_len) {
   if (public_key == NULL || payload == NULL || payload_len == 0U ||
-      payload_len > MESHCORE_MAX_SERVICE_REQUEST_PAYLOAD_LEN) {
+      payload_len > MESHCORE_MAX_SERVICE_REQUEST_PAYLOAD_LEN ||
+      !meshcore_mesh_datagram_plaintext_fits(sizeof(uint32_t) + payload_len)) {
     return -EINVAL;
   }
 
@@ -202,6 +203,7 @@ static int meshcore_runtime_request_validate_node_binary_response(
 
   if (request == NULL || (payload == NULL && payload_len > 0U) ||
       payload_len > MESHCORE_MAX_SERVICE_RESPONSE_PAYLOAD_LEN ||
+      !meshcore_mesh_datagram_plaintext_fits(sizeof(uint32_t) + payload_len) ||
       request->tag == 0U ||
       request->payload_len > MESHCORE_MAX_SERVICE_REQUEST_PAYLOAD_LEN) {
     return -EINVAL;
@@ -212,6 +214,10 @@ static int meshcore_runtime_request_validate_node_binary_response(
       return -EINVAL;
     }
     if (path_bytes > sizeof(request->path)) {
+      return -EINVAL;
+    }
+    if (!meshcore_mesh_path_return_extra_fits(
+            request->path_len, sizeof(uint32_t) + payload_len)) {
       return -EINVAL;
     }
   }

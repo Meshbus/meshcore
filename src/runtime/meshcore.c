@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
 /*
  * Copyright (c) 2026 FoBE Studio
  */
@@ -365,6 +365,8 @@ static void meshcore_runtime_state_reset(void) {
 }
 
 static int meshcore_runtime_begin(void) {
+  int rc;
+
   meshcore_packet_queue_manager_prepare(&meshcore_runtime_context_get()->packet_manager,
                                         MESHCORE_RUNTIME_PACKET_POOL_SIZE);
   if (!meshcore_runtime_context_get()->packet_manager.initialized) {
@@ -380,7 +382,10 @@ static int meshcore_runtime_begin(void) {
                                 meshcore_runtime_context_get());
   meshcore_mesh_begin(&meshcore_runtime_context_get()->mesh);
   meshcore_runtime_state_reset();
-  (void)meshcore_runtime_sync_local_identity();
+  rc = meshcore_runtime_sync_local_identity();
+  if (rc != 0) {
+    return rc;
+  }
   meshcore_runtime_context_get()->initialized = true;
   meshcore_runtime_timer_sync((uint32_t)meshcore_clock_millis_get());
   return 0;

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
 /*
  * Copyright (c) 2026 FoBE Studio
  */
@@ -44,6 +44,8 @@ static int test_channel_text_target_uses_secret_prefix(void)
   message = meshcore_native_platform_last_message_get();
   NATIVE_TEST_ASSERT_EQ(MESHCORE_COMMON_MESSAGE_TYPE_RECEIVE_CHANNEL,
                         message->type);
+  NATIVE_TEST_ASSERT(message->has_rx_snr);
+  NATIVE_TEST_ASSERT(message->rx_snr == 2.0f);
   NATIVE_TEST_ASSERT_EQ(MESHCORE_MESSAGE_TARGET_PREFIX_BYTES,
                         message->target_len);
   NATIVE_TEST_ASSERT(memcmp(message->target, channel.secret,
@@ -56,13 +58,39 @@ static int test_channel_text_target_uses_secret_prefix(void)
   return 0;
 }
 
+static int test_binary_response_rejects_oversized_flood_return(void)
+{
+  meshcore_common_binary_request_event_t request = {0};
+  uint8_t payload[MESHCORE_MAX_SERVICE_RESPONSE_PAYLOAD_LEN];
+
+  memset(payload, 0x55, sizeof(payload));
+  request.route = MESHCORE_COMMON_MESSAGE_ROUTE_FLOOD;
+  request.tag = 0x12345678U;
+  request.payload_len = 1U;
+  request.path_len = 0U;
+
+  NATIVE_TEST_ASSERT(meshcore_node_binary_response(&request, payload,
+                                                   sizeof(payload)) < 0);
+
+  request.route = MESHCORE_COMMON_MESSAGE_ROUTE_DIRECT;
+  NATIVE_TEST_ASSERT_EQ(0, meshcore_node_binary_response(&request, payload,
+                                                         sizeof(payload)));
+
+  return 0;
+}
+
 int main(void)
 {
   meshcore_native_platform_reset();
+  meshcore_native_platform_identity_get_fail_set(true);
+  NATIVE_TEST_ASSERT(meshcore_init() < 0);
 
+  meshcore_native_platform_reset();
   NATIVE_TEST_ASSERT_EQ(0, meshcore_init());
   NATIVE_TEST_ASSERT(meshcore_native_platform_timer_arm_count_get() > 0U);
   NATIVE_TEST_ASSERT(meshcore_native_platform_last_timer_deadline_get() > 0U);
+
+  NATIVE_TEST_ASSERT_EQ(0, test_binary_response_rejects_oversized_flood_return());
 
   meshcore_deinit();
   return test_channel_text_target_uses_secret_prefix();
