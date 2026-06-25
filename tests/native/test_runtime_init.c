@@ -13,6 +13,13 @@
 #include "meshcore_packet.h"
 #include "meshcore_runtime_bridge.h"
 
+/*
+ * Layer 2 event publication evidence:
+ * - .reference/meshcore/src/helpers/BaseChatMesh.h
+ * - .reference/meshcore/src/helpers/BaseChatMesh.cpp
+ * - .reference/meshcore/src/helpers/ChannelDetails.h
+ */
+
 static int test_channel_text_target_uses_secret_prefix(void)
 {
   struct meshcore_group_channel channel = {0};

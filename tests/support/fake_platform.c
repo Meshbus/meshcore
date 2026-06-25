@@ -19,9 +19,48 @@ static uint32_t s_last_timer_deadline;
 static unsigned long s_now_ms = 1UL;
 static uint32_t s_now_s = 1U;
 static unsigned int s_radio_begin_count;
+static unsigned int s_radio_send_count;
+static size_t s_last_radio_send_len;
+static uint8_t s_last_radio_send[MESHCORE_MAX_TRANS_UNIT_LEN];
 static unsigned int s_message_count;
 static meshcore_common_message_t s_last_message;
+static unsigned int s_message_ack_count;
+static unsigned int s_advert_count;
+static meshcore_common_advert_event_t s_last_advert;
+static unsigned int s_binary_request_count;
+static meshcore_common_binary_request_event_t s_last_binary_request;
+static unsigned int s_binary_response_count;
+static uint32_t s_last_binary_response_tag;
+static size_t s_last_binary_response_payload_len;
+static uint8_t s_last_binary_response_payload[MESHCORE_MAX_SERVICE_RESPONSE_PAYLOAD_LEN];
+static unsigned int s_raw_data_count;
+static meshcore_common_raw_data_event_t s_last_raw_data;
+static unsigned int s_control_data_count;
+static meshcore_common_control_data_event_t s_last_control_data;
+static unsigned int s_telemetry_count;
+static uint32_t s_last_telemetry_tag;
+static size_t s_last_telemetry_payload_len;
+static uint8_t s_last_telemetry_payload[MESHCORE_MAX_TELEMETRY_PAYLOAD_LEN];
+static unsigned int s_peer_path_publish_count;
+static meshcore_common_peer_path_event_t s_last_peer_path_publish;
+static unsigned int s_trace_path_count;
+static uint32_t s_last_trace_path_tag;
+static uint8_t s_last_trace_path_state;
+static uint8_t s_last_trace_path_out_count;
+static uint8_t s_last_trace_path_return_count;
+static unsigned int s_node_discover_count;
+static meshcore_common_node_discover_event_t s_last_node_discover;
+static unsigned int s_channel_data_count;
+static meshcore_common_channel_data_event_t s_last_channel_data;
+static unsigned int s_request_error_count;
+static int s_last_request_error;
+static bool s_peer_path_exists;
+static meshcore_common_peer_path_t s_peer_path;
+static bool s_channel_secret_match;
 static bool s_identity_get_fail;
+static bool s_timer_arm_fail;
+static bool s_radio_send_fail;
+static bool s_event_fail;
 
 void meshcore_native_platform_reset(void)
 {
@@ -31,9 +70,51 @@ void meshcore_native_platform_reset(void)
   s_now_ms = 1UL;
   s_now_s = 1U;
   s_radio_begin_count = 0U;
+  s_radio_send_count = 0U;
+  s_last_radio_send_len = 0U;
   s_message_count = 0U;
+  s_message_ack_count = 0U;
+  s_advert_count = 0U;
+  s_binary_request_count = 0U;
+  s_binary_response_count = 0U;
+  s_last_binary_response_tag = 0U;
+  s_last_binary_response_payload_len = 0U;
+  s_raw_data_count = 0U;
+  s_control_data_count = 0U;
+  s_telemetry_count = 0U;
+  s_last_telemetry_tag = 0U;
+  s_last_telemetry_payload_len = 0U;
+  s_peer_path_publish_count = 0U;
+  s_trace_path_count = 0U;
+  s_last_trace_path_tag = 0U;
+  s_last_trace_path_state = 0U;
+  s_last_trace_path_out_count = 0U;
+  s_last_trace_path_return_count = 0U;
+  s_node_discover_count = 0U;
+  s_channel_data_count = 0U;
+  s_request_error_count = 0U;
+  s_last_request_error = 0;
+  s_peer_path_exists = false;
+  memset(&s_peer_path, 0, sizeof(s_peer_path));
+  s_peer_path.out_path_len = MESHCORE_OUT_PATH_UNKNOWN;
+  s_peer_path.path_hash_size = 1U;
+  s_channel_secret_match = true;
   s_identity_get_fail = false;
+  s_timer_arm_fail = false;
+  s_radio_send_fail = false;
+  s_event_fail = false;
+  memset(s_last_radio_send, 0, sizeof(s_last_radio_send));
   memset(&s_last_message, 0, sizeof(s_last_message));
+  memset(&s_last_advert, 0, sizeof(s_last_advert));
+  memset(&s_last_binary_request, 0, sizeof(s_last_binary_request));
+  memset(s_last_binary_response_payload, 0,
+         sizeof(s_last_binary_response_payload));
+  memset(&s_last_raw_data, 0, sizeof(s_last_raw_data));
+  memset(&s_last_control_data, 0, sizeof(s_last_control_data));
+  memset(s_last_telemetry_payload, 0, sizeof(s_last_telemetry_payload));
+  memset(&s_last_peer_path_publish, 0, sizeof(s_last_peer_path_publish));
+  memset(&s_last_node_discover, 0, sizeof(s_last_node_discover));
+  memset(&s_last_channel_data, 0, sizeof(s_last_channel_data));
 }
 
 void meshcore_native_platform_identity_get_fail_set(bool fail)
@@ -41,14 +122,81 @@ void meshcore_native_platform_identity_get_fail_set(bool fail)
   s_identity_get_fail = fail;
 }
 
+void meshcore_native_platform_timer_arm_fail_set(bool fail)
+{
+  s_timer_arm_fail = fail;
+}
+
+void meshcore_native_platform_radio_send_fail_set(bool fail)
+{
+  s_radio_send_fail = fail;
+}
+
+void meshcore_native_platform_event_fail_set(bool fail)
+{
+  s_event_fail = fail;
+}
+
+void meshcore_native_platform_peer_path_set(bool exists,
+                                            bool is_neighbor,
+                                            const uint8_t *out_path,
+                                            uint8_t out_path_len,
+                                            uint8_t path_hash_size)
+{
+  s_peer_path_exists = exists;
+  memset(&s_peer_path, 0, sizeof(s_peer_path));
+  s_peer_path.out_path_len = out_path_len;
+  s_peer_path.is_neighbor = is_neighbor;
+  s_peer_path.path_hash_size = path_hash_size;
+  if (out_path != NULL && out_path_len <= sizeof(s_peer_path.out_path)) {
+    memcpy(s_peer_path.out_path, out_path, out_path_len);
+  }
+}
+
+void meshcore_native_platform_channel_secret_match_set(bool exists)
+{
+  s_channel_secret_match = exists;
+}
+
+void meshcore_native_platform_time_set(unsigned long now_ms, uint32_t now_s)
+{
+  s_now_ms = now_ms;
+  s_now_s = now_s;
+}
+
 unsigned int meshcore_native_platform_timer_arm_count_get(void)
 {
   return s_timer_arm_count;
 }
 
+unsigned int meshcore_native_platform_timer_cancel_count_get(void)
+{
+  return s_timer_cancel_count;
+}
+
 uint32_t meshcore_native_platform_last_timer_deadline_get(void)
 {
   return s_last_timer_deadline;
+}
+
+unsigned int meshcore_native_platform_radio_begin_count_get(void)
+{
+  return s_radio_begin_count;
+}
+
+unsigned int meshcore_native_platform_radio_send_count_get(void)
+{
+  return s_radio_send_count;
+}
+
+size_t meshcore_native_platform_last_radio_send_len_get(void)
+{
+  return s_last_radio_send_len;
+}
+
+const uint8_t *meshcore_native_platform_last_radio_send_get(void)
+{
+  return s_last_radio_send;
 }
 
 unsigned int meshcore_native_platform_message_count_get(void)
@@ -61,10 +209,169 @@ const meshcore_common_message_t *meshcore_native_platform_last_message_get(void)
   return &s_last_message;
 }
 
+unsigned int meshcore_native_platform_message_ack_count_get(void)
+{
+  return s_message_ack_count;
+}
+
+unsigned int meshcore_native_platform_advert_count_get(void)
+{
+  return s_advert_count;
+}
+
+const meshcore_common_advert_event_t *meshcore_native_platform_last_advert_get(void)
+{
+  return &s_last_advert;
+}
+
+unsigned int meshcore_native_platform_binary_request_count_get(void)
+{
+  return s_binary_request_count;
+}
+
+const meshcore_common_binary_request_event_t *
+meshcore_native_platform_last_binary_request_get(void)
+{
+  return &s_last_binary_request;
+}
+
+unsigned int meshcore_native_platform_binary_response_count_get(void)
+{
+  return s_binary_response_count;
+}
+
+uint32_t meshcore_native_platform_last_binary_response_tag_get(void)
+{
+  return s_last_binary_response_tag;
+}
+
+size_t meshcore_native_platform_last_binary_response_payload_len_get(void)
+{
+  return s_last_binary_response_payload_len;
+}
+
+const uint8_t *meshcore_native_platform_last_binary_response_payload_get(void)
+{
+  return s_last_binary_response_payload;
+}
+
+unsigned int meshcore_native_platform_raw_data_count_get(void)
+{
+  return s_raw_data_count;
+}
+
+const meshcore_common_raw_data_event_t *
+meshcore_native_platform_last_raw_data_get(void)
+{
+  return &s_last_raw_data;
+}
+
+unsigned int meshcore_native_platform_control_data_count_get(void)
+{
+  return s_control_data_count;
+}
+
+const meshcore_common_control_data_event_t *
+meshcore_native_platform_last_control_data_get(void)
+{
+  return &s_last_control_data;
+}
+
+unsigned int meshcore_native_platform_telemetry_count_get(void)
+{
+  return s_telemetry_count;
+}
+
+uint32_t meshcore_native_platform_last_telemetry_tag_get(void)
+{
+  return s_last_telemetry_tag;
+}
+
+size_t meshcore_native_platform_last_telemetry_payload_len_get(void)
+{
+  return s_last_telemetry_payload_len;
+}
+
+const uint8_t *meshcore_native_platform_last_telemetry_payload_get(void)
+{
+  return s_last_telemetry_payload;
+}
+
+unsigned int meshcore_native_platform_peer_path_publish_count_get(void)
+{
+  return s_peer_path_publish_count;
+}
+
+const meshcore_common_peer_path_event_t *
+meshcore_native_platform_last_peer_path_publish_get(void)
+{
+  return &s_last_peer_path_publish;
+}
+
+unsigned int meshcore_native_platform_trace_path_count_get(void)
+{
+  return s_trace_path_count;
+}
+
+uint32_t meshcore_native_platform_last_trace_path_tag_get(void)
+{
+  return s_last_trace_path_tag;
+}
+
+uint8_t meshcore_native_platform_last_trace_path_state_get(void)
+{
+  return s_last_trace_path_state;
+}
+
+uint8_t meshcore_native_platform_last_trace_path_out_count_get(void)
+{
+  return s_last_trace_path_out_count;
+}
+
+uint8_t meshcore_native_platform_last_trace_path_return_count_get(void)
+{
+  return s_last_trace_path_return_count;
+}
+
+unsigned int meshcore_native_platform_node_discover_count_get(void)
+{
+  return s_node_discover_count;
+}
+
+const meshcore_common_node_discover_event_t *
+meshcore_native_platform_last_node_discover_get(void)
+{
+  return &s_last_node_discover;
+}
+
+unsigned int meshcore_native_platform_channel_data_count_get(void)
+{
+  return s_channel_data_count;
+}
+
+const meshcore_common_channel_data_event_t *
+meshcore_native_platform_last_channel_data_get(void)
+{
+  return &s_last_channel_data;
+}
+
+unsigned int meshcore_native_platform_request_error_count_get(void)
+{
+  return s_request_error_count;
+}
+
+int meshcore_native_platform_last_request_error_get(void)
+{
+  return s_last_request_error;
+}
+
 int meshcore_platform_timer_arm(uint32_t deadline_ms)
 {
   s_timer_arm_count++;
   s_last_timer_deadline = deadline_ms;
+  if (s_timer_arm_fail) {
+    return -EIO;
+  }
   return 0;
 }
 
@@ -90,6 +397,16 @@ void meshcore_platform_radio_begin(void)
 
 int meshcore_platform_radio_packet_send(const uint8_t *data, size_t len)
 {
+  s_radio_send_count++;
+  s_last_radio_send_len = 0U;
+  if (data != NULL && len > 0U) {
+    s_last_radio_send_len = len <= sizeof(s_last_radio_send) ?
+        len : sizeof(s_last_radio_send);
+    memcpy(s_last_radio_send, data, s_last_radio_send_len);
+  }
+  if (s_radio_send_fail) {
+    return 0;
+  }
   return (data != NULL && len > 0U) ? 1 : 0;
 }
 
@@ -280,10 +597,14 @@ int meshcore_platform_peer_path_get_by_key(
   if (out == NULL) {
     return -EINVAL;
   }
-  memset(out, 0, sizeof(*out));
-  out->out_path_len = MESHCORE_OUT_PATH_UNKNOWN;
-  out->path_hash_size = 1U;
-  return -ENOENT;
+  if (!s_peer_path_exists) {
+    memset(out, 0, sizeof(*out));
+    out->out_path_len = MESHCORE_OUT_PATH_UNKNOWN;
+    out->path_hash_size = 1U;
+    return -ENOENT;
+  }
+  *out = s_peer_path;
+  return 0;
 }
 
 int meshcore_platform_peer_seen_update(const uint8_t *public_key, bool has_snr,
@@ -316,7 +637,7 @@ int meshcore_platform_channel_secret_match_exists(uint8_t channel_hash,
   (void)channel_hash;
   (void)secret;
   (void)secret_len;
-  return 0;
+  return s_channel_secret_match ? 1 : 0;
 }
 
 int meshcore_platform_channel_secret_hash(const uint8_t *secret,
@@ -555,7 +876,8 @@ void meshcore_platform_runtime_request_error(uint8_t request_type,
                                              int err_code)
 {
   (void)request_type;
-  (void)err_code;
+  s_request_error_count++;
+  s_last_request_error = err_code;
 }
 
 int meshcore_platform_event_message(const meshcore_common_message_t *message)
@@ -564,35 +886,42 @@ int meshcore_platform_event_message(const meshcore_common_message_t *message)
     s_last_message = *message;
     s_message_count++;
   }
-  return 0;
+  return s_event_fail ? -EIO : 0;
 }
 
 int meshcore_platform_event_message_ack(const uint8_t *target, uint8_t attempt)
 {
   (void)target;
   (void)attempt;
-  return 0;
+  s_message_ack_count++;
+  return s_event_fail ? -EIO : 0;
 }
 
 int meshcore_platform_event_advert(const meshcore_common_advert_event_t *advert)
 {
-  (void)advert;
-  return 0;
+  if (advert != NULL) {
+    s_last_advert = *advert;
+    s_advert_count++;
+  }
+  return s_event_fail ? -EIO : 0;
 }
 
 int meshcore_platform_event_peer_path_publish(
     const meshcore_common_peer_path_event_t *peer_path, bool is_discover)
 {
-  (void)peer_path;
   (void)is_discover;
-  return 0;
+  if (peer_path != NULL) {
+    s_last_peer_path_publish = *peer_path;
+    s_peer_path_publish_count++;
+  }
+  return s_event_fail ? -EIO : 0;
 }
 
 int meshcore_platform_event_peer_path(
     const meshcore_common_peer_path_event_t *peer_path)
 {
   (void)peer_path;
-  return 0;
+  return s_event_fail ? -EIO : 0;
 }
 
 int meshcore_platform_event_trace_path(const uint8_t *key_prefix,
@@ -607,16 +936,17 @@ int meshcore_platform_event_trace_path(const uint8_t *key_prefix,
                                        uint32_t timestamp)
 {
   (void)key_prefix;
-  (void)state;
-  (void)tag;
   (void)out_path_snr;
-  (void)out_count;
   (void)return_path_snr;
-  (void)return_count;
   (void)has_response_snr;
   (void)response_snr;
   (void)timestamp;
-  return 0;
+  s_trace_path_count++;
+  s_last_trace_path_state = state;
+  s_last_trace_path_tag = tag;
+  s_last_trace_path_out_count = out_count;
+  s_last_trace_path_return_count = return_count;
+  return s_event_fail ? -EIO : 0;
 }
 
 int meshcore_platform_event_telemetry(const uint8_t *key_prefix,
@@ -627,17 +957,25 @@ int meshcore_platform_event_telemetry(const uint8_t *key_prefix,
 {
   (void)key_prefix;
   (void)timestamp;
-  (void)tag;
-  (void)payload;
-  (void)payload_len;
-  return 0;
+  s_telemetry_count++;
+  s_last_telemetry_tag = tag;
+  s_last_telemetry_payload_len =
+      payload_len <= sizeof(s_last_telemetry_payload) ?
+          payload_len : sizeof(s_last_telemetry_payload);
+  if (payload != NULL && s_last_telemetry_payload_len > 0U) {
+    memcpy(s_last_telemetry_payload, payload, s_last_telemetry_payload_len);
+  }
+  return s_event_fail ? -EIO : 0;
 }
 
 int meshcore_platform_event_binary_request(
     const meshcore_common_binary_request_event_t *event)
 {
-  (void)event;
-  return 0;
+  if (event != NULL) {
+    s_last_binary_request = *event;
+    s_binary_request_count++;
+  }
+  return s_event_fail ? -EIO : 0;
 }
 
 int meshcore_platform_event_binary_response(const uint8_t *key_prefix,
@@ -647,38 +985,56 @@ int meshcore_platform_event_binary_response(const uint8_t *key_prefix,
 {
   (void)key_prefix;
   (void)timestamp;
-  (void)tag;
-  (void)payload;
-  (void)payload_len;
-  return 0;
+  s_binary_response_count++;
+  s_last_binary_response_tag = tag;
+  s_last_binary_response_payload_len =
+      payload_len <= sizeof(s_last_binary_response_payload) ?
+          payload_len : sizeof(s_last_binary_response_payload);
+  if (payload != NULL && s_last_binary_response_payload_len > 0U) {
+    memcpy(s_last_binary_response_payload, payload,
+           s_last_binary_response_payload_len);
+  }
+  return s_event_fail ? -EIO : 0;
 }
 
 int meshcore_platform_event_node_discover(
     const meshcore_common_node_discover_event_t *event)
 {
-  (void)event;
-  return 0;
+  if (event != NULL) {
+    s_last_node_discover = *event;
+    s_node_discover_count++;
+  }
+  return s_event_fail ? -EIO : 0;
 }
 
 int meshcore_platform_event_channel_data(
     const meshcore_common_channel_data_event_t *event)
 {
-  (void)event;
-  return 0;
+  if (event != NULL) {
+    s_last_channel_data = *event;
+    s_channel_data_count++;
+  }
+  return s_event_fail ? -EIO : 0;
 }
 
 int meshcore_platform_event_raw_data(
     const meshcore_common_raw_data_event_t *event)
 {
-  (void)event;
-  return 0;
+  if (event != NULL) {
+    s_last_raw_data = *event;
+    s_raw_data_count++;
+  }
+  return s_event_fail ? -EIO : 0;
 }
 
 int meshcore_platform_event_control_data(
     const meshcore_common_control_data_event_t *event)
 {
-  (void)event;
-  return 0;
+  if (event != NULL) {
+    s_last_control_data = *event;
+    s_control_data_count++;
+  }
+  return s_event_fail ? -EIO : 0;
 }
 
 int meshcore_platform_telemetry_node_get(

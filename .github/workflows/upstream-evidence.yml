@@ -1,0 +1,43 @@
+name: meshcore-upstream-evidence
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 3 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  upstream-evidence:
+    name: locked upstream evidence
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare locked upstream reference
+        run: |
+          mkdir -p .reference
+          git clone https://github.com/meshcore-dev/MeshCore .reference/meshcore
+          git -C .reference/meshcore fetch origin e8d3c53ba1ea863937081cd0caad759b832f3028
+          git -C .reference/meshcore checkout --detach e8d3c53ba1ea863937081cd0caad759b832f3028
+      - name: Strict upstream lock
+        run: python3 tools/upstream_lock_check.py --repo-root .
+      - name: Sync and boundary report
+        run: python3 tools/meshcore_sync_report.py --repo-root .
+      - name: Configure parity tests
+        run: >
+          cmake -S . -B build.meshcore-native
+          -DMESHCORE_BUILD_TESTS=ON
+          -DMESHCORE_BUILD_EXAMPLES=ON
+          -DCMAKE_BUILD_TYPE=Debug
+      - name: Build
+        run: cmake --build build.meshcore-native --parallel
+      - name: Parity tests
+        run: ctest --test-dir build.meshcore-native -L parity --output-on-failure
+      - name: Upstream differential oracle
+        run: >
+          python3 tools/upstream_oracle.py
+          --repo-root .
+          --meshcore-lib build.meshcore-native/libmeshcore.a
+          --work-dir build.meshcore-native/upstream-oracle
+          --require-reference

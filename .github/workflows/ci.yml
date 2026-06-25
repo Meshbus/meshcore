@@ -1,0 +1,134 @@
+name: meshcore-ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: meshcore-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  boundary:
+    name: boundary / api / package
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sync and boundary report
+        run: python3 tools/meshcore_sync_report.py --repo-root .
+      - name: Configure
+        run: >
+          cmake -S . -B build.meshcore-native
+          -DMESHCORE_BUILD_TESTS=ON
+          -DMESHCORE_BUILD_EXAMPLES=ON
+          -DCMAKE_BUILD_TYPE=Debug
+      - name: Build
+        run: cmake --build build.meshcore-native --parallel
+      - name: API and boundary tests
+        run: ctest --test-dir build.meshcore-native -L "api|boundary" --output-on-failure
+      - name: Package smoke
+        run: ctest --test-dir build.meshcore-native -L package --output-on-failure
+
+  native:
+    name: native / ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ubuntu-24.04-gcc-debug
+            os: ubuntu-24.04
+            build_type: Debug
+            compiler_arg: -DCMAKE_C_COMPILER=gcc
+          - name: ubuntu-24.04-clang-debug
+            os: ubuntu-24.04
+            build_type: Debug
+            compiler_arg: -DCMAKE_C_COMPILER=clang
+          - name: macos-15-appleclang-debug
+            os: macos-15
+            build_type: Debug
+            compiler_arg: ""
+          - name: windows-2025-msvc-debug
+            os: windows-2025
+            build_type: Debug
+            compiler_arg: ""
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: >
+          cmake -S . -B build.meshcore-native
+          -DMESHCORE_BUILD_TESTS=ON
+          -DMESHCORE_BUILD_EXAMPLES=ON
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          ${{ matrix.compiler_arg }}
+      - name: Build
+        run: cmake --build build.meshcore-native --config ${{ matrix.build_type }} --parallel
+      - name: Test
+        run: ctest --test-dir build.meshcore-native -C ${{ matrix.build_type }} -LE package --output-on-failure
+
+  strict:
+    name: strict warnings / ubuntu-24.04
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: >
+          cmake -S . -B build.meshcore-werror
+          -DMESHCORE_BUILD_TESTS=ON
+          -DMESHCORE_BUILD_EXAMPLES=ON
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_C_FLAGS="-Wall -Wextra -Werror -Wpedantic"
+      - name: Build
+        run: cmake --build build.meshcore-werror --parallel
+      - name: Test
+        run: ctest --test-dir build.meshcore-werror -LE package --output-on-failure
+
+  sanitize:
+    name: asan-ubsan / ubuntu-24.04
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: >
+          cmake -S . -B build.meshcore-sanitize
+          -DMESHCORE_BUILD_TESTS=ON
+          -DMESHCORE_BUILD_EXAMPLES=ON
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g"
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+      - name: Build
+        run: cmake --build build.meshcore-sanitize --parallel
+      - name: Test
+        run: ctest --test-dir build.meshcore-sanitize -LE package --output-on-failure
+      - name: Fuzz smoke
+        run: ctest --test-dir build.meshcore-sanitize -L fuzz --output-on-failure
+
+  coverage:
+    name: coverage report / ubuntu-24.04
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: >
+          cmake -S . -B build.meshcore-coverage
+          -DMESHCORE_BUILD_TESTS=ON
+          -DMESHCORE_BUILD_EXAMPLES=ON
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_C_COMPILER=gcc
+          -DCMAKE_C_FLAGS="--coverage -O0 -g"
+          -DCMAKE_EXE_LINKER_FLAGS="--coverage"
+      - name: Build
+        run: cmake --build build.meshcore-coverage --parallel
+      - name: Test
+        run: ctest --test-dir build.meshcore-coverage --output-on-failure
+      - name: Coverage report
+        run: >
+          python3 tools/coverage_report.py
+          --repo-root .
+          --build-dir build.meshcore-coverage
+          --require-data

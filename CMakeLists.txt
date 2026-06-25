@@ -39,6 +39,8 @@ if(UNIX)
 endif()
 
 if(MESHCORE_BUILD_TESTS)
+  enable_language(CXX)
+  target_compile_definitions(meshcore PRIVATE MESHCORE_ENABLE_TEST_HOOKS)
   include(CTest)
   add_subdirectory(tests/native)
 endif()

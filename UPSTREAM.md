@@ -11,6 +11,7 @@ checks should verify.
 | Reference path | `.reference/meshcore` |
 | Commit | `e8d3c53ba1ea863937081cd0caad759b832f3028` |
 | Commit summary | `Merge pull request #2753 from formtapez/cli-docs` |
+| Nearest companion tag | `companion-v1.16.0-8-ge8d3c53b` |
 | Upstream license | MIT License; retained in `NOTICE` |
 
 `.reference/meshcore` is read-only evidence. Do not update it as part of a
@@ -18,6 +19,12 @@ normal library change. The `.reference/` directory is intentionally ignored by
 Git and is not part of release tarballs. When the reference revision changes,
 update this file, `upstream.lock`, API maps, and the sync report output in the
 same migration phase.
+
+The upstream companion tag is a firmware/application release reference, not
+this C library's package version and not a standalone protocol version. Release
+compatibility is tracked as a tuple: C package version, upstream evidence
+commit, nearest upstream tag, wire payload version, and public ABI version. See
+`docs/versioning.md`.
 
 To prepare the reference checkout in a fresh clone:
 

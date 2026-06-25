@@ -270,22 +270,33 @@ def check_subprocess_tools(repo_root: Path, items: list[ReportItem]) -> None:
 
 def iter_scan_files(root: Path) -> list[Path]:
     files: list[Path] = []
+
+    def should_skip_dir(path: Path) -> bool:
+        return path.name in SKIP_SCAN_DIRS or path.name.startswith("build")
+
+    def visit_dir(directory: Path) -> None:
+        if should_skip_dir(directory):
+            return
+        try:
+            children = list(directory.iterdir())
+        except FileNotFoundError:
+            return
+        for child in children:
+            if child.is_dir():
+                visit_dir(child)
+                continue
+            if not child.is_file():
+                continue
+            if child.name == "CMakeLists.txt" or child.suffix in TEXT_SCAN_SUFFIXES:
+                files.append(child)
+
     if root.is_file():
         if root.name == "CMakeLists.txt" or root.suffix in TEXT_SCAN_SUFFIXES:
             return [root]
         return []
     if not root.exists():
         return files
-    for path in root.rglob("*"):
-        if any(
-            part in SKIP_SCAN_DIRS or part.startswith("build.")
-            for part in path.parts
-        ):
-            continue
-        if not path.is_file():
-            continue
-        if path.name == "CMakeLists.txt" or path.suffix in TEXT_SCAN_SUFFIXES:
-            files.append(path)
+    visit_dir(root)
     return files
 
 

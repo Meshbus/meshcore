@@ -35,7 +35,7 @@ extern "C" {
  */
 
 /** Public ABI version for breaking interface revisions. */
-#define MESHCORE_ABI_VERSION 26U
+#define MESHCORE_ABI_VERSION 27U
 
 /** Size of an Ed25519 public key in bytes. */
 #define MESHCORE_PUBLIC_KEY_SIZE 32U
@@ -267,6 +267,8 @@ typedef struct meshcore_common_peer_identity {
 typedef struct meshcore_common_peer_path {
   /** Path byte length, or MESHCORE_OUT_PATH_UNKNOWN when unknown. */
   uint8_t out_path_len;
+  /** True when zero-length @ref out_path_len means direct neighbor zero-hop. */
+  bool is_neighbor;
   /** Encoded outbound path bytes. */
   uint8_t out_path[MESHCORE_MAX_PATH_LEN];
   /** Path hash width in bytes. */

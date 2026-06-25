@@ -338,6 +338,10 @@ bool meshcore_runtime_peer_path_get(const uint8_t *public_key,
     return false;
   }
 
+  if (out->out_path_len == 0U && !out->is_neighbor) {
+    return false;
+  }
+
   if (!meshcore_runtime_path_len_encode(
           meshcore_runtime_normalize_path_hash_size(out->path_hash_size),
           out->out_path_len, &path_len)) {

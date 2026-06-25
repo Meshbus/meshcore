@@ -95,6 +95,8 @@ source-list drift.
 - `docs/porting.md`: platform hook and runtime API integration guide.
 - `docs/testing.md`: independent tests, sync checks, and downstream host
   integration coverage.
+- `docs/versioning.md`: C package version, upstream evidence baseline, wire
+  payload version, ABI version, and release tag policy.
 
 ## License
 

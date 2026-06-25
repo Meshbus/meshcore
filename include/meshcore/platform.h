@@ -305,6 +305,10 @@ int meshcore_platform_node_advert_profile_get(
 /**
  * @brief Look up an outbound path for a peer public key.
  *
+ * Hosts must set @ref meshcore_common_peer_path_t.is_neighbor when
+ * @ref meshcore_common_peer_path_t.out_path_len is zero. A zero-length path
+ * with `is_neighbor == false` is treated as unknown and falls back to flood.
+ *
  * @param public_key Peer public key.
  * @param[out] out Peer path to fill.
  * @return 0 on success, -ENOENT when no path is known, or another negative

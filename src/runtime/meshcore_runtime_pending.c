@@ -540,6 +540,30 @@ bool meshcore_test_runtime_pending_telemetry_get(uint32_t *tag,
   return true;
 }
 
+bool meshcore_test_runtime_pending_binary_is_valid(void) {
+  return meshcore_runtime_context_get()->pending_binary.valid;
+}
+
+bool meshcore_test_runtime_pending_binary_get(uint32_t *tag,
+                                              uint8_t *key_prefix,
+                                              unsigned long *expires_at_ms) {
+  if (!meshcore_runtime_context_get()->pending_binary.valid) {
+    return false;
+  }
+
+  if (tag != NULL) {
+    *tag = meshcore_runtime_context_get()->pending_binary.tag;
+  }
+  if (key_prefix != NULL) {
+    memcpy(key_prefix, meshcore_runtime_context_get()->pending_binary.key_prefix,
+           sizeof(meshcore_runtime_context_get()->pending_binary.key_prefix));
+  }
+  if (expires_at_ms != NULL) {
+    *expires_at_ms = meshcore_runtime_context_get()->pending_binary.expires_at_ms;
+  }
+  return true;
+}
+
 bool meshcore_test_runtime_simulate_ack_recv(uint32_t ack_crc) {
   return meshcore_runtime_expected_ack_handle(ack_crc);
 }
@@ -618,6 +642,26 @@ bool meshcore_test_runtime_simulate_telemetry_response_recv(
   }
 
   return meshcore_runtime_pending_telemetry_handle(
+      key_prefix, meshcore_runtime_timestamp_now_seconds(), data,
+      sizeof(tag) + payload_len);
+}
+
+bool meshcore_test_runtime_simulate_binary_response_recv(
+    const uint8_t *key_prefix, uint32_t tag, const uint8_t *payload,
+    size_t payload_len) {
+  uint8_t data[sizeof(tag) + MESHCORE_MAX_SERVICE_RESPONSE_PAYLOAD_LEN];
+
+  if (key_prefix == NULL || payload == NULL ||
+      payload_len > MESHCORE_MAX_SERVICE_RESPONSE_PAYLOAD_LEN) {
+    return false;
+  }
+
+  memcpy(data, &tag, sizeof(tag));
+  if (payload_len > 0U) {
+    memcpy(&data[sizeof(tag)], payload, payload_len);
+  }
+
+  return meshcore_runtime_pending_binary_handle(
       key_prefix, meshcore_runtime_timestamp_now_seconds(), data,
       sizeof(tag) + payload_len);
 }
