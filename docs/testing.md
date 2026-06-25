@@ -39,6 +39,10 @@ boundaries, and example public-API usage. If `.reference/meshcore` is not
 checked out, upstream evidence checks are reported as warnings while the
 repository-local boundary checks still run.
 
+Use `python3 tools/upstream_lock_check.py --repo-root .` only after preparing
+the ignored `.reference/meshcore` checkout described in `UPSTREAM.md`; that
+standalone lock check intentionally fails when the reference tree is absent.
+
 ## FoBE Downstream Coverage
 
 FoBE keeps Zephyr and Meshbus integration tests outside the generic library.

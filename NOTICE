@@ -1,13 +1,13 @@
 MeshCore C Library
 Copyright (c) 2026 FoBE Studio
 
-This project is licensed under the Apache License, Version 2.0. See LICENSE.
+FoBE-owned project code is licensed under the MIT License. See LICENSE.
 
 This C library implements MeshCore protocol and runtime behavior using the
 upstream MeshCore project as API and runtime evidence:
 
   https://github.com/meshcore-dev/MeshCore
-  Reference commit: c940ea5f305df87c4ea215d74e522b64c22c66e9
+  Reference commit: e8d3c53ba1ea863937081cd0caad759b832f3028
 
 Where portions of this library are derived from or translated from upstream
 MeshCore, the following upstream MIT notice is retained:
@@ -33,3 +33,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+
+Bundled third-party Monocypher sources under `src/support/crypto/` retain their
+upstream `BSD-2-Clause OR CC0-1.0` license and copyright notices.

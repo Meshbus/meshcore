@@ -9,14 +9,24 @@ checks should verify.
 | Field | Value |
 | --- | --- |
 | Reference path | `.reference/meshcore` |
-| Commit | `c940ea5f305df87c4ea215d74e522b64c22c66e9` |
-| Commit summary | `Merge pull request #2567 from recrof/patch-4` |
+| Commit | `e8d3c53ba1ea863937081cd0caad759b832f3028` |
+| Commit summary | `Merge pull request #2753 from formtapez/cli-docs` |
 | Upstream license | MIT License; retained in `NOTICE` |
 
 `.reference/meshcore` is read-only evidence. Do not update it as part of a
-normal library change. When the reference revision changes, update this file,
-`upstream.lock`, API maps, and the sync report output in the same migration
-phase.
+normal library change. The `.reference/` directory is intentionally ignored by
+Git and is not part of release tarballs. When the reference revision changes,
+update this file, `upstream.lock`, API maps, and the sync report output in the
+same migration phase.
+
+To prepare the reference checkout in a fresh clone:
+
+```sh
+mkdir -p .reference
+git clone https://github.com/meshcore-dev/MeshCore .reference/meshcore
+git -C .reference/meshcore fetch origin e8d3c53ba1ea863937081cd0caad759b832f3028
+git -C .reference/meshcore checkout --detach e8d3c53ba1ea863937081cd0caad759b832f3028
+```
 
 ## Evidence Classification
 
@@ -106,7 +116,11 @@ python3 tools/meshcore_sync_report.py --repo-root .
 ```
 
 The lock check verifies that `.reference/meshcore` is at the commit recorded in
-`upstream.lock` and has no local reference-tree changes.
+`upstream.lock` and has no local reference-tree changes. It is expected to fail
+in a fresh public clone until the reference checkout is prepared with the
+commands above. `meshcore_sync_report.py` still runs repository-local boundary
+checks without `.reference/meshcore` and reports missing upstream evidence as
+warnings.
 
 The sync report groups drift into these categories:
 

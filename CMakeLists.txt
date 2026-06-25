@@ -1,11 +1,11 @@
 #
 # Copyright (c) 2026 FoBE Studio
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT
 #
 
 cmake_minimum_required(VERSION 3.20)
 
-project(meshcore_c VERSION 0.1.0 LANGUAGES C)
+project(meshcore VERSION 0.1.0 LANGUAGES C)
 
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   set(MESHCORE_IS_TOP_LEVEL ON)

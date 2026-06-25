@@ -1,5 +1,5 @@
 # Copyright (c) 2026 FoBE Studio
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT
 
 include(${CMAKE_CURRENT_LIST_DIR}/../../cmake/meshcore_sources.cmake)
 

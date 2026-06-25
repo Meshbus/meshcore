@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 FoBE Studio
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT
 
 """Verify that the checked-out MeshCore reference matches upstream.lock."""
 

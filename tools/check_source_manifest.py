@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 FoBE Studio
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT
 
 """Check that every MeshCore C source is listed in the CMake manifest."""
 

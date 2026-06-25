@@ -97,12 +97,12 @@ source-list drift.
 
 ## License
 
-MeshCore C library code is licensed under Apache-2.0 unless a file-level SPDX
-license identifier states otherwise. See `LICENSE`.
+FoBE-owned MeshCore C library code is licensed under the MIT License. See
+`LICENSE`.
 
 This library implements MeshCore protocol and runtime behavior using upstream
 MeshCore evidence. Upstream MeshCore is licensed under the MIT License; retained
 upstream attribution and the MIT notice are in `NOTICE`.
 
-Bundled Monocypher sources keep their upstream `BSD-2-Clause OR CC0-1.0`
-license.
+Bundled third-party Monocypher sources keep their upstream
+`BSD-2-Clause OR CC0-1.0` license and copyright notices.

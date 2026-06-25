@@ -3,7 +3,7 @@
 This directory contains the Layer 2 host-driven MeshCore runtime.
 
 The runtime composes `src/core`, `src/support`, and `src/platform`, then
-exposes the public C ABI from `lib/meshcore/include/meshcore/runtime.h`. Hosts
+exposes the public C ABI from `include/meshcore/runtime.h`. Hosts
 own scheduling, storage, transport, and platform integration through the direct
 `meshcore_platform_*` hooks declared by `meshcore/platform.h`.
 
