@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
 /*
  * Copyright (c) 2026 FoBE Studio
  */
@@ -18,7 +18,8 @@
 void meshcore_utils_sha256(uint8_t *hash, size_t hash_len, const uint8_t *msg,
 			   int msg_len)
 {
-	if (hash == NULL || msg == NULL || hash_len == 0U || msg_len < 0) {
+	if (hash == NULL || hash_len == 0U || msg_len < 0 ||
+	    (msg == NULL && msg_len > 0)) {
 		if (hash != NULL && hash_len != 0U) {
 			memset(hash, 0, hash_len);
 		}
@@ -34,8 +35,9 @@ void meshcore_utils_sha256_two_fragments(uint8_t *hash, size_t hash_len,
 					 const uint8_t *frag1, int frag1_len,
 					 const uint8_t *frag2, int frag2_len)
 {
-	if (hash == NULL || frag1 == NULL || frag2 == NULL || hash_len == 0U ||
-	    frag1_len < 0 || frag2_len < 0) {
+	if (hash == NULL || hash_len == 0U || frag1_len < 0 || frag2_len < 0 ||
+	    (frag1 == NULL && frag1_len > 0) ||
+	    (frag2 == NULL && frag2_len > 0)) {
 		if (hash != NULL && hash_len != 0U) {
 			memset(hash, 0, hash_len);
 		}
@@ -198,10 +200,15 @@ bool meshcore_utils_is_hex_char(char c)
 
 bool meshcore_utils_from_hex(uint8_t *dest, int dest_size, const char *src_hex)
 {
-	int len = strlen(src_hex);
+	size_t len;
 	uint8_t *dp = dest;
 
-	if (len != dest_size * 2) {
+	if (dest == NULL || src_hex == NULL || dest_size < 0) {
+		return false;
+	}
+
+	len = strlen(src_hex);
+	if (len != (size_t)dest_size * 2U) {
 		return false;
 	}
 
@@ -209,6 +216,10 @@ bool meshcore_utils_from_hex(uint8_t *dest, int dest_size, const char *src_hex)
 		char ch = *src_hex++;
 		char cl = *src_hex++;
 
+		if (!meshcore_utils_is_hex_char(ch) ||
+		    !meshcore_utils_is_hex_char(cl)) {
+			return false;
+		}
 		*dp++ = (uint8_t)((hex_val(ch) << 4) | hex_val(cl));
 	}
 

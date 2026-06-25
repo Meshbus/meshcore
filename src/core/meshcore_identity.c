@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
 /*
  * Copyright (c) 2026 FoBE Studio
  */
@@ -125,7 +125,7 @@ int meshcore_identity_copy_hash_to(const struct meshcore_identity *identity,
 int meshcore_identity_copy_hash_by_len(const struct meshcore_identity *identity,
 				       uint8_t *dest, uint8_t len)
 {
-	if (identity == NULL || dest == NULL) {
+	if (identity == NULL || dest == NULL || len > MESHCORE_PUBLIC_KEY_SIZE) {
 		return 0;
 	}
 
@@ -143,7 +143,7 @@ bool meshcore_identity_is_hash_match(const struct meshcore_identity *identity,
 bool meshcore_identity_is_hash_match_by_len(
 	const struct meshcore_identity *identity, const uint8_t *hash, uint8_t len)
 {
-	if (identity == NULL || hash == NULL) {
+	if (identity == NULL || hash == NULL || len > MESHCORE_PUBLIC_KEY_SIZE) {
 		return false;
 	}
 

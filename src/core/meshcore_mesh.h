@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
 /*
  * Copyright (c) 2026 FoBE Studio
  */
@@ -111,10 +111,17 @@ struct meshcore_packet *meshcore_mesh_create_group_datagram(
     struct meshcore_mesh *mesh, uint8_t type,
     const struct meshcore_group_channel *channel, const uint8_t *data,
     size_t data_len);
+bool meshcore_mesh_datagram_plaintext_fits(size_t len);
+bool meshcore_mesh_path_return_extra_fits(uint8_t path_len, size_t extra_len);
 struct meshcore_packet *meshcore_mesh_create_ack(struct meshcore_mesh *mesh,
                                                  uint32_t ack_crc);
+struct meshcore_packet *meshcore_mesh_create_ack_data(
+    struct meshcore_mesh *mesh, const uint8_t *ack, size_t ack_len);
 struct meshcore_packet *meshcore_mesh_create_multi_ack(
     struct meshcore_mesh *mesh, uint32_t ack_crc, uint8_t remaining);
+struct meshcore_packet *meshcore_mesh_create_multi_ack_data(
+    struct meshcore_mesh *mesh, const uint8_t *ack, size_t ack_len,
+    uint8_t remaining);
 struct meshcore_packet *meshcore_mesh_create_path_return_by_dest_hash(
     struct meshcore_mesh *mesh, const uint8_t *dest_hash,
     const uint8_t *secret, const uint8_t *path, uint8_t path_len,

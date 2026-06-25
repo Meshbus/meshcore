@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
 /*
  * Copyright (c) 2026 FoBE Studio
  */
@@ -16,18 +16,15 @@ extern "C" {
 #endif
 
 /*
- * Internal duplicate-filter / ACK tables for meshcore-C runtime.
+ * Internal duplicate-filter tables for meshcore-C runtime.
  */
 
-#define MESHCORE_TABLES_MAX_PACKET_HASHES 128U
-#define MESHCORE_TABLES_MAX_PACKET_ACKS 64U
+#define MESHCORE_TABLES_MAX_PACKET_HASHES 160U
 
 struct meshcore_tables {
   uint8_t hashes[MESHCORE_TABLES_MAX_PACKET_HASHES *
                  MESHCORE_PACKET_HASH_SIZE];
   int next_idx;
-  uint32_t acks[MESHCORE_TABLES_MAX_PACKET_ACKS];
-  int next_ack_idx;
   uint32_t direct_dups;
   uint32_t flood_dups;
 };

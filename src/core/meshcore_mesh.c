@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
 /*
  * Copyright (c) 2026 FoBE Studio
  */
@@ -17,7 +17,7 @@
 #define MESHCORE_MESH_PATH_HASH_SIZE 1U
 #define MESHCORE_MESH_SIGNATURE_SIZE 64U
 #define MESHCORE_MESH_MAX_ADVERT_DATA_SIZE 32U
-#define MESHCORE_MESH_MAX_COMBINED_PATH                              \
+#define MESHCORE_MESH_MAX_COMBINED_PATH \
   (MESHCORE_PACKET_PAYLOAD_MAX_LEN - MESHCORE_MESH_CIPHER_MAC_SIZE - \
    MESHCORE_MESH_CIPHER_BLOCK_SIZE)
 
@@ -114,7 +114,6 @@ static void meshcore_mesh_route_direct_recv_acks(struct meshcore_mesh *mesh,
                                                  struct meshcore_packet *packet,
                                                  uint32_t delay_millis)
 {
-  uint32_t crc = 0U;
   uint8_t extra;
   struct meshcore_packet *a1;
   struct meshcore_packet *a2;
@@ -123,17 +122,15 @@ static void meshcore_mesh_route_direct_recv_acks(struct meshcore_mesh *mesh,
     return;
   }
 
-  if (meshcore_packet_is_marked_do_not_retransmit(packet) ||
-      packet->payload_len < sizeof(crc)) {
+  if (meshcore_packet_is_marked_do_not_retransmit(packet)) {
     return;
   }
-
-  memcpy(&crc, packet->payload, sizeof(crc));
 
   extra = meshcore_mesh_runtime_get_extra_ack_transmit_count(mesh);
   while (extra > 0U) {
     delay_millis += meshcore_mesh_runtime_get_direct_retransmit_delay(mesh, packet) + 300U;
-    a1 = meshcore_mesh_create_multi_ack(mesh, crc, extra);
+    a1 = meshcore_mesh_create_multi_ack_data(mesh, packet->payload,
+                                             packet->payload_len, extra);
     if (a1 != NULL) {
       a1->path_len =
           meshcore_packet_copy_path(a1->path, packet->path, (uint8_t)packet->path_len);
@@ -144,7 +141,7 @@ static void meshcore_mesh_route_direct_recv_acks(struct meshcore_mesh *mesh,
     extra--;
   }
 
-  a2 = meshcore_mesh_create_ack(mesh, crc);
+  a2 = meshcore_mesh_create_ack_data(mesh, packet->payload, packet->payload_len);
   if (a2 != NULL) {
     a2->path_len =
         meshcore_packet_copy_path(a2->path, packet->path, (uint8_t)packet->path_len);
@@ -719,8 +716,7 @@ struct meshcore_packet *meshcore_mesh_create_datagram(
         type == PAYLOAD_TYPE_RESPONSE)) {
     return NULL;
   }
-  if (len + MESHCORE_MESH_CIPHER_MAC_SIZE + MESHCORE_MESH_CIPHER_BLOCK_SIZE - 1U >
-      MESHCORE_PACKET_PAYLOAD_MAX_LEN) {
+  if (!meshcore_mesh_datagram_plaintext_fits(len)) {
     return NULL;
   }
 
@@ -767,8 +763,10 @@ struct meshcore_packet *meshcore_mesh_create_anon_datagram(
   if (type != PAYLOAD_TYPE_ANON_REQ) {
     return NULL;
   }
-  if (data_len + 1U + MESHCORE_PUBLIC_KEY_SIZE + MESHCORE_MESH_CIPHER_BLOCK_SIZE - 1U >
-      MESHCORE_PACKET_PAYLOAD_MAX_LEN) {
+  if (data_len > MESHCORE_PACKET_PAYLOAD_MAX_LEN -
+                     MESHCORE_MESH_PATH_HASH_SIZE -
+                     MESHCORE_PUBLIC_KEY_SIZE -
+                     MESHCORE_MESH_CIPHER_BLOCK_SIZE + 1U) {
     return NULL;
   }
 
@@ -813,8 +811,9 @@ struct meshcore_packet *meshcore_mesh_create_group_datagram(
   if (!(type == PAYLOAD_TYPE_GRP_TXT || type == PAYLOAD_TYPE_GRP_DATA)) {
     return NULL;
   }
-  if (data_len + 1U + MESHCORE_MESH_CIPHER_BLOCK_SIZE - 1U >
-      MESHCORE_PACKET_PAYLOAD_MAX_LEN) {
+  if (data_len > MESHCORE_PACKET_PAYLOAD_MAX_LEN -
+                     MESHCORE_MESH_PATH_HASH_SIZE -
+                     MESHCORE_MESH_CIPHER_BLOCK_SIZE + 1U) {
     return NULL;
   }
 
@@ -841,34 +840,80 @@ struct meshcore_packet *meshcore_mesh_create_group_datagram(
   return packet;
 }
 
+bool meshcore_mesh_datagram_plaintext_fits(size_t len)
+{
+  return len <= MESHCORE_PACKET_PAYLOAD_MAX_LEN -
+                    MESHCORE_MESH_CIPHER_MAC_SIZE -
+                    MESHCORE_MESH_CIPHER_BLOCK_SIZE + 1U;
+}
+
+bool meshcore_mesh_path_return_extra_fits(uint8_t path_len, size_t extra_len)
+{
+  uint8_t path_hash_size = (uint8_t)((path_len >> 6) + 1U);
+  uint8_t path_hash_count = path_len & 63U;
+  size_t path_bytes = (size_t)path_hash_size * path_hash_count;
+
+  if (path_bytes > MESHCORE_MESH_MAX_COMBINED_PATH - 5U) {
+    return false;
+  }
+  return extra_len <= MESHCORE_MESH_MAX_COMBINED_PATH - 5U - path_bytes;
+}
+
 struct meshcore_packet *meshcore_mesh_create_ack(struct meshcore_mesh *mesh,
                                                  uint32_t ack_crc)
 {
+  return meshcore_mesh_create_ack_data(mesh, (const uint8_t *)&ack_crc,
+                                       sizeof(ack_crc));
+}
+
+struct meshcore_packet *meshcore_mesh_create_ack_data(
+    struct meshcore_mesh *mesh, const uint8_t *ack, size_t ack_len)
+{
   struct meshcore_packet *packet = meshcore_mesh_obtain_new_packet(mesh);
 
-  if (packet == NULL) {
+  if (packet == NULL || (ack == NULL && ack_len > 0U) ||
+      ack_len > MESHCORE_PACKET_PAYLOAD_MAX_LEN) {
+    if (packet != NULL) {
+      meshcore_mesh_release_consumed_packet(mesh, packet);
+    }
     return NULL;
   }
 
   packet->header = (uint8_t)(PAYLOAD_TYPE_ACK << PH_TYPE_SHIFT);
-  memcpy(packet->payload, &ack_crc, sizeof(ack_crc));
-  packet->payload_len = sizeof(ack_crc);
+  if (ack_len > 0U) {
+    memcpy(packet->payload, ack, ack_len);
+  }
+  packet->payload_len = (uint16_t)ack_len;
   return packet;
 }
 
 struct meshcore_packet *meshcore_mesh_create_multi_ack(
     struct meshcore_mesh *mesh, uint32_t ack_crc, uint8_t remaining)
 {
+  return meshcore_mesh_create_multi_ack_data(mesh, (const uint8_t *)&ack_crc,
+                                             sizeof(ack_crc), remaining);
+}
+
+struct meshcore_packet *meshcore_mesh_create_multi_ack_data(
+    struct meshcore_mesh *mesh, const uint8_t *ack, size_t ack_len,
+    uint8_t remaining)
+{
   struct meshcore_packet *packet = meshcore_mesh_obtain_new_packet(mesh);
 
-  if (packet == NULL) {
+  if (packet == NULL || (ack == NULL && ack_len > 0U) ||
+      ack_len > MESHCORE_PACKET_PAYLOAD_MAX_LEN - 1U) {
+    if (packet != NULL) {
+      meshcore_mesh_release_consumed_packet(mesh, packet);
+    }
     return NULL;
   }
 
   packet->header = (uint8_t)(PAYLOAD_TYPE_MULTIPART << PH_TYPE_SHIFT);
   packet->payload[0] = (uint8_t)((remaining << 4) | PAYLOAD_TYPE_ACK);
-  memcpy(&packet->payload[1], &ack_crc, sizeof(ack_crc));
-  packet->payload_len = 5U;
+  if (ack_len > 0U) {
+    memcpy(&packet->payload[1], ack, ack_len);
+  }
+  packet->payload_len = (uint16_t)(1U + ack_len);
   return packet;
 }
 
@@ -898,7 +943,7 @@ struct meshcore_packet *meshcore_mesh_create_path_return_by_dest_hash(
     return NULL;
   }
 
-  if ((size_t)path_bytes + extra_len + 5U > MESHCORE_MESH_MAX_COMBINED_PATH) {
+  if (!meshcore_mesh_path_return_extra_fits(path_len, extra_len)) {
     return NULL;
   }
 

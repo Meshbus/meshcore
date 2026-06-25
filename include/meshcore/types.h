@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2026 FoBE Studio
  *
- * SPDX-License-Identifier: Apache-2.0
+ * SPDX-License-Identifier: MIT
  */
 
 /**
@@ -35,7 +35,7 @@ extern "C" {
  */
 
 /** Public ABI version for breaking interface revisions. */
-#define MESHCORE_ABI_VERSION 25U
+#define MESHCORE_ABI_VERSION 26U
 
 /** Size of an Ed25519 public key in bytes. */
 #define MESHCORE_PUBLIC_KEY_SIZE 32U
@@ -44,9 +44,9 @@ extern "C" {
 /** Maximum text message payload length accepted by the public API. */
 #define MESHCORE_MAX_MESSAGE_TX_LEN 160U
 /** Maximum service request payload length accepted by the public API. */
-#define MESHCORE_MAX_SERVICE_REQUEST_PAYLOAD_LEN 168U
-/** Maximum service response payload length surfaced to platform events. */
-#define MESHCORE_MAX_SERVICE_RESPONSE_PAYLOAD_LEN 180U
+#define MESHCORE_MAX_SERVICE_REQUEST_PAYLOAD_LEN 163U
+/** Maximum direct service response payload length accepted by the public API. */
+#define MESHCORE_MAX_SERVICE_RESPONSE_PAYLOAD_LEN 163U
 /** Maximum anonymous datagram payload length accepted by the public API. */
 #define MESHCORE_MAX_ANON_DATA_PAYLOAD_LEN 136U
 /** Maximum group/channel binary payload length. */
@@ -94,8 +94,8 @@ extern "C" {
 #define MESHCORE_CHANNEL_SECRET_LEN_32 32U
 /** Maximum encoded path byte count. */
 #define MESHCORE_MAX_PATH_LEN 64U
-/** Maximum decoded telemetry payload bytes. */
-#define MESHCORE_MAX_TELEMETRY_PAYLOAD_LEN 230U
+/** Maximum direct telemetry response payload bytes accepted by the runtime. */
+#define MESHCORE_MAX_TELEMETRY_PAYLOAD_LEN 163U
 /** Maximum channel matches returned by channel hash search. */
 #define MESHCORE_CHANNEL_SEARCH_MAX_MATCHES 4U
 /** Public-key prefix length used by node-discover prefix responses. */

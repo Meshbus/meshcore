@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
 /*
  * Copyright (c) 2026 FoBE Studio
  */
@@ -16,27 +16,6 @@ static void meshcore_tables_count_dup(
 	} else {
 		tables->flood_dups++;
 	}
-}
-
-static bool meshcore_tables_has_seen_ack(
-	struct meshcore_tables *tables,
-	const struct meshcore_packet *packet)
-{
-	uint32_t ack;
-	int i;
-
-	memcpy(&ack, packet->payload, sizeof(ack));
-	for (i = 0; i < (int)MESHCORE_TABLES_MAX_PACKET_ACKS; i++) {
-		if (ack == tables->acks[i]) {
-			meshcore_tables_count_dup(tables, packet);
-			return true;
-		}
-	}
-
-	tables->acks[tables->next_ack_idx] = ack;
-	tables->next_ack_idx =
-		(tables->next_ack_idx + 1) % (int)MESHCORE_TABLES_MAX_PACKET_ACKS;
-	return false;
 }
 
 static bool meshcore_tables_has_seen_hash(
@@ -79,10 +58,6 @@ bool meshcore_tables_has_seen(struct meshcore_tables *tables,
 		return false;
 	}
 
-	if (meshcore_packet_get_payload_type(packet) == PAYLOAD_TYPE_ACK) {
-		return meshcore_tables_has_seen_ack(tables, packet);
-	}
-
 	return meshcore_tables_has_seen_hash(tables, packet);
 }
 
@@ -93,18 +68,7 @@ void meshcore_tables_clear(struct meshcore_tables *tables,
 		return;
 	}
 
-	if (meshcore_packet_get_payload_type(packet) == PAYLOAD_TYPE_ACK) {
-		uint32_t ack;
-		int i;
-
-		memcpy(&ack, packet->payload, sizeof(ack));
-		for (i = 0; i < (int)MESHCORE_TABLES_MAX_PACKET_ACKS; i++) {
-			if (ack == tables->acks[i]) {
-				tables->acks[i] = 0U;
-				break;
-			}
-		}
-	} else {
+	{
 		uint8_t hash[MESHCORE_PACKET_HASH_SIZE];
 		uint8_t *sp = tables->hashes;
 		int i;
