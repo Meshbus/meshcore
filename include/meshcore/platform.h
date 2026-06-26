@@ -735,7 +735,6 @@ int meshcore_platform_event_peer_path(
 /**
  * @brief Publish a trace-path event.
  *
- * @param key_prefix Peer public-key prefix.
  * @param state Host-visible trace state.
  * @param tag Trace correlation tag.
  * @param out_path_snr Outbound path SNR values.
@@ -747,8 +746,7 @@ int meshcore_platform_event_peer_path(
  * @param timestamp Event timestamp.
  * @return 0 on success, or a negative errno-style value.
  */
-int meshcore_platform_event_trace_path(const uint8_t *key_prefix,
-                                       uint8_t state,
+int meshcore_platform_event_trace_path(uint8_t state,
                                        uint32_t tag,
                                        const int8_t *out_path_snr,
                                        uint8_t out_count,

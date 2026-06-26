@@ -924,8 +924,7 @@ int meshcore_platform_event_peer_path(
   return s_event_fail ? -EIO : 0;
 }
 
-int meshcore_platform_event_trace_path(const uint8_t *key_prefix,
-                                       uint8_t state,
+int meshcore_platform_event_trace_path(uint8_t state,
                                        uint32_t tag,
                                        const int8_t *out_path_snr,
                                        uint8_t out_count,
@@ -935,7 +934,6 @@ int meshcore_platform_event_trace_path(const uint8_t *key_prefix,
                                        int8_t response_snr,
                                        uint32_t timestamp)
 {
-  (void)key_prefix;
   (void)out_path_snr;
   (void)return_path_snr;
   (void)has_response_snr;

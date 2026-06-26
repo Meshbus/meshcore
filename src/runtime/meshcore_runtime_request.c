@@ -146,6 +146,20 @@ static int meshcore_runtime_request_validate_node_telemetry(
   return 0;
 }
 
+static int meshcore_runtime_request_validate_node_trace(
+    const uint8_t *path, uint8_t path_len, uint8_t path_hash_size) {
+  uint8_t hop_count;
+
+  if (path == NULL || path_len == 0U ||
+      path_len > MESHCORE_MAX_PATH_LEN || path_hash_size == 0U ||
+      path_hash_size > 3U || (path_len % path_hash_size) != 0U) {
+    return -EINVAL;
+  }
+
+  hop_count = (uint8_t)(path_len / path_hash_size);
+  return (hop_count % 2U) == 0U ? -EINVAL : 0;
+}
+
 static int meshcore_runtime_request_validate_raw_data(
     const uint8_t *path, uint8_t path_len, const uint8_t *payload,
     size_t payload_len) {
@@ -506,33 +520,24 @@ static void meshcore_runtime_request_execute_node_discover_path(
 
 static void meshcore_runtime_request_execute_node_trace_path(
     const struct meshcore_runtime_request_node_trace_path *request) {
-  meshcore_common_peer_path_t peer_path;
   struct meshcore_packet *packet;
-  uint8_t trace_out_path[MESHCORE_MAX_PATH_LEN];
   uint8_t trace_path[MESHCORE_MAX_PATH_LEN];
-  uint8_t peer_hash_size;
   uint8_t trace_hash_size;
   uint8_t flags = 0U;
   uint32_t tag;
   uint32_t auth_code;
-  size_t trace_out_len;
   size_t trace_len = 0U;
   size_t max_trace_len = MESHCORE_PACKET_PAYLOAD_MAX_LEN - 9U;
   size_t hop_count;
   size_t hop;
 
   if (request == NULL ||
-      meshcore_platform_bridge_peer_path_get_by_key(request->public_key, &peer_path) != 0 ||
-      peer_path.out_path_len == 0U) {
+      meshcore_runtime_request_validate_node_trace(
+          request->path, request->path_len, request->path_hash_size) != 0) {
     return;
   }
 
-  peer_hash_size = meshcore_runtime_normalize_path_hash_size(peer_path.path_hash_size);
-  if ((peer_path.out_path_len % peer_hash_size) != 0U) {
-    return;
-  }
-
-  trace_hash_size = peer_hash_size;
+  trace_hash_size = request->path_hash_size;
   if (trace_hash_size == 3U) {
     trace_hash_size = 2U;
   }
@@ -542,16 +547,23 @@ static void meshcore_runtime_request_execute_node_trace_path(
     return;
   }
 
-  trace_out_len = peer_path.out_path_len;
-  if (peer_hash_size != trace_hash_size) {
-    hop_count = peer_path.out_path_len / peer_hash_size;
-    trace_out_len = hop_count * trace_hash_size;
-    for (hop = 0U; hop < hop_count; hop++) {
-      memcpy(&trace_out_path[hop * trace_hash_size],
-             &peer_path.out_path[hop * peer_hash_size], trace_hash_size);
+  if (request->path_hash_size != trace_hash_size) {
+    hop_count = request->path_len / request->path_hash_size;
+    trace_len = hop_count * trace_hash_size;
+    if (trace_len > max_trace_len || trace_len > sizeof(trace_path)) {
+      return;
     }
-  } else if (trace_out_len > 0U) {
-    memcpy(trace_out_path, peer_path.out_path, trace_out_len);
+    for (hop = 0U; hop < hop_count; hop++) {
+      memcpy(&trace_path[hop * trace_hash_size],
+             &request->path[hop * request->path_hash_size],
+             trace_hash_size);
+    }
+  } else {
+    trace_len = request->path_len;
+    if (trace_len > max_trace_len || trace_len > sizeof(trace_path)) {
+      return;
+    }
+    memcpy(trace_path, request->path, trace_len);
   }
 
   tag = request->tag;
@@ -568,29 +580,7 @@ static void meshcore_runtime_request_execute_node_trace_path(
     return;
   }
 
-  if (trace_out_len > max_trace_len) {
-    meshcore_dispatcher_release_packet(&meshcore_runtime_context_get()->mesh.dispatcher,
-                                       packet);
-    return;
-  }
-  if (trace_out_len > 0U) {
-    memcpy(trace_path, trace_out_path, trace_out_len);
-    trace_len = trace_out_len;
-  }
-
-  for (hop = trace_out_len; hop >= (size_t)(2U * trace_hash_size);
-       hop -= trace_hash_size) {
-    if (trace_len + trace_hash_size > max_trace_len) {
-      meshcore_dispatcher_release_packet(&meshcore_runtime_context_get()->mesh.dispatcher,
-                                         packet);
-      return;
-    }
-    memcpy(&trace_path[trace_len], &trace_out_path[hop - (2U * trace_hash_size)],
-           trace_hash_size);
-    trace_len += trace_hash_size;
-  }
-
-  meshcore_runtime_pending_trace_register(tag, request->public_key);
+  meshcore_runtime_pending_trace_register(tag);
   meshcore_mesh_send_direct(&meshcore_runtime_context_get()->mesh, packet, trace_path,
                             (uint8_t)trace_len, 0U);
 }
@@ -1172,8 +1162,9 @@ int meshcore_node_discover_path_request(const uint8_t *public_key,
   return rc;
 }
 
-int meshcore_node_trace_path_request(const uint8_t *public_key,
-                                     uint32_t *request_tag) {
+int meshcore_node_trace_request(const uint8_t *path, uint8_t path_len,
+                                uint8_t path_hash_size,
+                                uint32_t *request_tag) {
   int rc = meshcore_runtime_require_initialized();
   union meshcore_runtime_request_data data;
   uint32_t tag = 0U;
@@ -1182,7 +1173,8 @@ int meshcore_node_trace_path_request(const uint8_t *public_key,
     return rc;
   }
 
-  rc = meshcore_runtime_request_validate_public_key(public_key);
+  rc = meshcore_runtime_request_validate_node_trace(path, path_len,
+                                                    path_hash_size);
   if (rc != 0) {
     return rc;
   }
@@ -1196,8 +1188,9 @@ int meshcore_node_trace_path_request(const uint8_t *public_key,
   }
 
   memset(&data, 0, sizeof(data));
-  memcpy(data.node_trace_path.public_key, public_key,
-         sizeof(data.node_trace_path.public_key));
+  memcpy(data.node_trace_path.path, path, path_len);
+  data.node_trace_path.path_len = path_len;
+  data.node_trace_path.path_hash_size = path_hash_size;
   data.node_trace_path.tag = tag;
   rc = meshcore_runtime_request_add(MESHCORE_RUNTIME_REQUEST_NODE_TRACE_PATH,
                                     &data);
@@ -1205,6 +1198,14 @@ int meshcore_node_trace_path_request(const uint8_t *public_key,
     *request_tag = tag;
   }
   return rc;
+}
+
+int meshcore_node_trace_path_request(const uint8_t *public_key,
+                                     uint32_t *request_tag) {
+  (void)public_key;
+  (void)request_tag;
+
+  return -ENOTSUP;
 }
 
 int meshcore_node_telemetry_request(const uint8_t *public_key,

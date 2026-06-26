@@ -29,7 +29,7 @@ bool meshcore_test_runtime_pending_discovery_get(uint32_t *tag,
                                                  uint8_t *key_prefix,
                                                  unsigned long *expires_at_ms);
 bool meshcore_test_runtime_pending_trace_is_valid(void);
-bool meshcore_test_runtime_pending_trace_get(uint32_t *tag, uint8_t *key_prefix,
+bool meshcore_test_runtime_pending_trace_get(uint32_t *tag,
                                              unsigned long *expires_at_ms);
 bool meshcore_test_runtime_pending_telemetry_is_valid(void);
 bool meshcore_test_runtime_pending_telemetry_get(uint32_t *tag,
@@ -234,10 +234,9 @@ static int test_discover_path_and_trace_pending_events(void)
   meshcore_native_platform_peer_path_set(true, false, trace_path,
                                          sizeof(trace_path), 1U);
   tag = 0xAABBCCDDU;
-  NATIVE_TEST_ASSERT_EQ(0, meshcore_node_trace_path_request(s_public_key,
-                                                            &tag));
-  NATIVE_TEST_ASSERT(meshcore_test_runtime_pending_trace_get(&got_tag,
-                                                            key_prefix, NULL));
+  NATIVE_TEST_ASSERT_EQ(0, meshcore_node_trace_request(
+                               trace_path, sizeof(trace_path), 1U, &tag));
+  NATIVE_TEST_ASSERT(meshcore_test_runtime_pending_trace_get(&got_tag, NULL));
   NATIVE_TEST_ASSERT_EQ(tag, got_tag);
   NATIVE_TEST_ASSERT(meshcore_test_runtime_simulate_trace_recv(
       tag, 0U, path_snrs, sizeof(path_snrs), 4));

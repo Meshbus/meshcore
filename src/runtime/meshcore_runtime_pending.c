@@ -226,19 +226,12 @@ void meshcore_runtime_pending_discovery_register(uint32_t tag,
          sizeof(meshcore_runtime_context_get()->pending_discovery.key_prefix));
 }
 
-void meshcore_runtime_pending_trace_register(uint32_t tag,
-                                                    const uint8_t *key_prefix) {
-  if (key_prefix == NULL) {
-    return;
-  }
-
+void meshcore_runtime_pending_trace_register(uint32_t tag) {
   meshcore_runtime_pending_trace_clear();
   meshcore_runtime_context_get()->pending_trace.valid = true;
   meshcore_runtime_context_get()->pending_trace.tag = tag;
   meshcore_runtime_context_get()->pending_trace.expires_at_ms =
       meshcore_clock_millis_get() + MESHCORE_RUNTIME_REQUEST_TIMEOUT_MS;
-  memcpy(meshcore_runtime_context_get()->pending_trace.key_prefix, key_prefix,
-         sizeof(meshcore_runtime_context_get()->pending_trace.key_prefix));
 }
 
 void meshcore_runtime_pending_telemetry_register(
@@ -363,9 +356,8 @@ bool meshcore_runtime_pending_trace_handle(
                                          response_snr);
 
   (void)meshcore_platform_bridge_trace_path_handler(
-      meshcore_runtime_context_get()->pending_trace.key_prefix, 1U, tag, out_path_snr, out_count,
-      return_path_snr, return_count, true, response_snr,
-      meshcore_runtime_timestamp_now_seconds());
+      1U, tag, out_path_snr, out_count, return_path_snr, return_count, true,
+      response_snr, meshcore_runtime_timestamp_now_seconds());
   meshcore_runtime_pending_trace_clear();
   return true;
 }
@@ -493,7 +485,7 @@ bool meshcore_test_runtime_pending_trace_is_valid(void) {
   return meshcore_runtime_context_get()->pending_trace.valid;
 }
 
-bool meshcore_test_runtime_pending_trace_get(uint32_t *tag, uint8_t *key_prefix,
+bool meshcore_test_runtime_pending_trace_get(uint32_t *tag,
                                              unsigned long *expires_at_ms) {
   if (!meshcore_runtime_context_get()->pending_trace.valid) {
     return false;
@@ -501,10 +493,6 @@ bool meshcore_test_runtime_pending_trace_get(uint32_t *tag, uint8_t *key_prefix,
 
   if (tag != NULL) {
     *tag = meshcore_runtime_context_get()->pending_trace.tag;
-  }
-  if (key_prefix != NULL) {
-    memcpy(key_prefix, meshcore_runtime_context_get()->pending_trace.key_prefix,
-           sizeof(meshcore_runtime_context_get()->pending_trace.key_prefix));
   }
   if (expires_at_ms != NULL) {
     *expires_at_ms = meshcore_runtime_context_get()->pending_trace.expires_at_ms;

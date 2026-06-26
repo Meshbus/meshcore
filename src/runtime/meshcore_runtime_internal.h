@@ -105,7 +105,9 @@ struct meshcore_runtime_request_node_discover_path {
 };
 
 struct meshcore_runtime_request_node_trace_path {
-  uint8_t public_key[MESHCORE_PUBLIC_KEY_SIZE];
+  uint8_t path[MESHCORE_MAX_PATH_LEN];
+  uint8_t path_len;
+  uint8_t path_hash_size;
   uint32_t tag;
 };
 
@@ -207,7 +209,6 @@ struct meshcore_runtime_pending_trace {
   bool valid;
   uint32_t tag;
   unsigned long expires_at_ms;
-  uint8_t key_prefix[MESHCORE_NODE_KEY_PREFIX_BYTES];
 };
 
 struct meshcore_runtime_pending_telemetry {
@@ -331,8 +332,7 @@ void meshcore_runtime_pending_telemetry_clear(void);
 void meshcore_runtime_pending_binary_clear(void);
 void meshcore_runtime_pending_discovery_register(uint32_t tag,
                                                  const uint8_t *key_prefix);
-void meshcore_runtime_pending_trace_register(uint32_t tag,
-                                             const uint8_t *key_prefix);
+void meshcore_runtime_pending_trace_register(uint32_t tag);
 void meshcore_runtime_pending_telemetry_register(uint32_t tag,
                                                  const uint8_t *key_prefix,
                                                  uint8_t permission_mask);

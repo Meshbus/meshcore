@@ -172,14 +172,30 @@ int meshcore_node_discover_path_request(const uint8_t *public_key,
                                         uint32_t *request_tag);
 
 /**
- * @brief Request trace path for a peer with an existing outbound path.
+ * @brief Request trace over an explicit encoded route path.
  *
- * @param public_key Full peer public key.
+ * @param path Encoded route hash bytes. The caller owns route construction.
+ * @param path_len Number of bytes in @p path.
+ * @param path_hash_size Number of hash bytes per hop in @p path. Values 1..3
+ * are accepted; 3-byte paths are encoded as 2-byte TRACE routes to match the
+ * upstream TRACE wire format.
  * @param request_tag Optional request correlation tag storage. Pass NULL or
  * a pointer to zero to let the runtime generate a tag. A non-zero pointed
  * value is used as the request tag. On success, the actual request tag is
  * written back to this pointer when provided.
  * @return 0 on success, or a negative errno-style value.
+ */
+int meshcore_node_trace_request(const uint8_t *path, uint8_t path_len,
+                                uint8_t path_hash_size,
+                                uint32_t *request_tag);
+
+/**
+ * @brief Deprecated host-path trace request.
+ *
+ * Host-owned route construction is no longer performed inside lib-meshcore.
+ * Use @ref meshcore_node_trace_request with an explicit route path.
+ *
+ * @return -ENOTSUP.
  */
 int meshcore_node_trace_path_request(const uint8_t *public_key,
                                      uint32_t *request_tag);

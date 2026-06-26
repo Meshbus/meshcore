@@ -35,6 +35,7 @@
 /* MESHCORE_API_COVERAGE: meshcore_message_send_to_channel */
 /* MESHCORE_API_COVERAGE: meshcore_channel_data_send */
 /* MESHCORE_API_COVERAGE: meshcore_node_discover_path_request */
+/* MESHCORE_API_COVERAGE: meshcore_node_trace_request */
 /* MESHCORE_API_COVERAGE: meshcore_node_trace_path_request */
 /* MESHCORE_API_COVERAGE: meshcore_node_telemetry_request */
 /* MESHCORE_API_COVERAGE: meshcore_node_binary_request */
@@ -136,6 +137,7 @@ static int assert_runtime_entry_points_reject_uninitialized(void)
       s_secret, MESHCORE_CHANNEL_SECRET_LEN_16, NULL, 0U,
       MESHCORE_CHANNEL_DATA_TYPE_DEV, NULL, 0U) < 0);
   NATIVE_TEST_ASSERT(meshcore_node_discover_path_request(s_public_key, &tag) < 0);
+  NATIVE_TEST_ASSERT(meshcore_node_trace_request(s_path, 1U, 1U, &tag) < 0);
   NATIVE_TEST_ASSERT(meshcore_node_trace_path_request(s_public_key, &tag) < 0);
   NATIVE_TEST_ASSERT(meshcore_node_telemetry_request(
       s_public_key, MESHCORE_TELEM_PERM_BASE, &tag) < 0);
@@ -252,6 +254,10 @@ static int test_runtime_apis_reject_invalid_arguments(void)
       MESHCORE_MAX_CHANNEL_DATA_PAYLOAD_LEN + 1U) < 0);
 
   NATIVE_TEST_ASSERT(meshcore_node_discover_path_request(NULL, &tag) < 0);
+  NATIVE_TEST_ASSERT(meshcore_node_trace_request(NULL, 1U, 1U, &tag) < 0);
+  NATIVE_TEST_ASSERT(meshcore_node_trace_request(s_path, 0U, 1U, &tag) < 0);
+  NATIVE_TEST_ASSERT(meshcore_node_trace_request(s_path, 2U, 1U, &tag) < 0);
+  NATIVE_TEST_ASSERT(meshcore_node_trace_request(s_path, 1U, 0U, &tag) < 0);
   NATIVE_TEST_ASSERT(meshcore_node_trace_path_request(NULL, &tag) < 0);
   NATIVE_TEST_ASSERT(meshcore_node_telemetry_request(
       NULL, MESHCORE_TELEM_PERM_BASE, &tag) < 0);

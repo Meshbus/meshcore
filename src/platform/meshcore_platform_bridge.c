@@ -292,12 +292,12 @@ int meshcore_platform_bridge_peer_path_handler(
 }
 
 int meshcore_platform_bridge_trace_path_handler(
-    const uint8_t *key_prefix, uint8_t state, uint32_t tag, const int8_t *out_path_snr,
-    uint8_t out_count, const int8_t *return_path_snr, uint8_t return_count,
+    uint8_t state, uint32_t tag, const int8_t *out_path_snr, uint8_t out_count,
+    const int8_t *return_path_snr, uint8_t return_count,
     bool has_response_snr, int8_t response_snr, uint32_t timestamp) {
   return meshcore_platform_event_trace_path(
-      key_prefix, state, tag, out_path_snr, out_count, return_path_snr,
-      return_count, has_response_snr, response_snr, timestamp);
+      state, tag, out_path_snr, out_count, return_path_snr, return_count,
+      has_response_snr, response_snr, timestamp);
 }
 
 int meshcore_platform_bridge_telemetry_handler(const uint8_t *key_prefix,
