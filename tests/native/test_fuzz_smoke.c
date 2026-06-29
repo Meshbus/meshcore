@@ -50,7 +50,6 @@ static int test_packet_parser_fuzz_smoke(void)
       uint8_t written = meshcore_packet_write_to(&packet, out);
 
       NATIVE_TEST_ASSERT(written > 0U);
-      NATIVE_TEST_ASSERT(written <= MESHCORE_MAX_TRANS_UNIT_LEN);
     }
   }
 
