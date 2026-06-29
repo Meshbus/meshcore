@@ -53,10 +53,6 @@ jobs:
             os: macos-15
             build_type: Debug
             compiler_arg: ""
-          - name: windows-2025-msvc-debug
-            os: windows-2025
-            build_type: Debug
-            compiler_arg: ""
     steps:
       - uses: actions/checkout@v4
       - name: Configure

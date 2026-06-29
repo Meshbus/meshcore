@@ -451,7 +451,7 @@ static void meshcore_dispatcher_check_send(struct meshcore_dispatcher *dispatche
   }
 
   len = meshcore_packet_write_to(dispatcher->outbound, raw);
-  if (len == 0U || len > MESHCORE_MAX_TRANS_UNIT_LEN) {
+  if (len == 0U) {
     meshcore_packet_queue_manager_free(dispatcher->packet_manager,
                                        dispatcher->outbound);
     dispatcher->outbound = NULL;
